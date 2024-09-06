@@ -1,0 +1,21 @@
+{
+    "editor.tabSize": 2,
+    "eslint.enable": true,
+    "eslint.validate": [
+        "javascript",
+        "html"
+    ],
+    "cSpell.words": [
+        "devcontainer",
+        "petname",
+        "solarizedlight",
+        "nginx"
+    ],
+    // Specify paths/files to ignore.
+    "cSpell.ignorePaths": [
+        "devcontainer.json",
+        "settings.json",
+        "jsonconfig.json"
+    ],
+    "typescript.validate.enable": true
+}
