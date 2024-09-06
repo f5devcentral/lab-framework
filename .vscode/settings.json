@@ -7,9 +7,10 @@
     ],
     "cSpell.words": [
         "devcontainer",
+        "dockerode",
+        "nginx",
         "petname",
-        "solarizedlight",
-        "nginx"
+        "solarizedlight"
     ],
     // Specify paths/files to ignore.
     "cSpell.ignorePaths": [
