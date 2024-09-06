@@ -2,32 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+.flex-grow {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  max-width: 100%;
+  overflow-x: hidden; /* Ensure no horizontal overflow */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+/* Custom styles */
+h1 {
+  @apply text-3xl font-bold m-4;
+}
+h2 {
+  @apply text-2xl font-bold m-4;
+}
+h3 {
+  @apply text-xl font-bold m-4;
+}
+h4 {
+  @apply text-lg font-bold m-4;
+}
+p {
+  @apply text-base m-4 font-sans;
+}
+ul {
+  @apply list-disc list-inside m-4;
+}
+li {
+  @apply mb-2;
+}
+li p {
+  @apply inline;
+}
+table {
+  @apply m-4 table-auto;
+}
+th {
+  @apply bg-gray-200 border border-gray-400 p-2;
+}
+td {
+  @apply border border-gray-400 p-2;
+}
+a {
+  @apply text-blue-500 underline;
+}
+blockquote {
+  @apply border-l-4 border-orange-500 p-4 m-4;
+}
+p img {
+  @apply scale-75;
+}
+ol {
+  @apply list-decimal list-inside pl-5;
+}
+.hidden {
+  display: none;
+}
+@media (max-width: 768px) {
+  .toc-container {
+    display: none;
   }
 }
-
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+.active {
+  font-weight: bold;
+  color: blue; /* Adjust styles as needed */
 }
