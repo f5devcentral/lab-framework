@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { mergeClasses } from "@/app/lib/utils";
 
 const cardStyles = "max-w-sm rounded overflow-hidden shadow-lg";
@@ -8,9 +8,9 @@ type CardProps = {
   className?: string;
 };
 
-const Card: React.FC<CardProps> = ({className, children }) => {
+const Card: React.FC<CardProps> = ({ className, children }) => {
   return (
-    <div 
+    <div
       className={className ? mergeClasses(cardStyles, className) : cardStyles}
     >
       {children}
