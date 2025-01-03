@@ -1,4 +1,4 @@
-import { getMdxContent } from "@/lib/mdxUtils"
+// import { getMdxContent } from "@/lib/mdxUtils"
 import { delay } from "@/lib/utils"
 import { getEnvVariable } from "@/lib/variables"
 
@@ -8,7 +8,8 @@ interface PageParams {
 
 export default async function Page({ params }: { params: PageParams }) {
   if (await getEnvVariable("SIMULATE_LOAD_DELAY")) await delay(5000);
-  const { content, frontmatter } = await getMdxContent(params.doc)
+  const { content, frontmatter } = { content: "content", frontmatter: { title: params.doc, description: "description" } }
+  // const { content, frontmatter } = await getMdxContent(params.doc)
   return (
     <>
       <div className="mb-10">

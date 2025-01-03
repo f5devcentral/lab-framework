@@ -15,9 +15,10 @@ export function ToC() {
     // Get all the headings on the page
     const headingElements = document.querySelectorAll("h1, h2, h3, h4");
     const idCounts: { [key: string]: number } = {}; // To keep track of the number of times an ID has been used
-
     const headings = Array.from(headingElements).map((heading) => {
-      let id = (heading as HTMLElement).innerText.toLowerCase().replace(/\s/g, "-");
+      let id = (heading.childNodes[0]?.textContent as string)
+        ?.toLowerCase()
+        .replace(/\s/g, "-");
 
       // If the ID already exists, append a counter to make it unique
       if (idCounts[id]) {
@@ -27,7 +28,9 @@ export function ToC() {
         idCounts[id] = 1;
       }
 
-      heading.setAttribute("id", id); // Set the id attribute of the heading element
+      if (id) {
+        heading.setAttribute("id", id); // Set the id attribute of the heading element
+      }
       return {
         title: (heading as HTMLElement).innerText,
         id: id,
