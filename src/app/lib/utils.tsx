@@ -6,7 +6,7 @@ import { twMerge } from "tailwind-merge";
  * @param {...string[]} classes - The classes to merge.
  * @returns {string} - The merged class string.
  */
-function mergeClasses(...classes: string[]): string {
+export function mergeClasses(...classes: string[]): string {
     return twMerge(...classes);
 }
 
@@ -23,7 +23,7 @@ type InstanceDeploymentNameType = {
  * @param {string} [param0.petname='testing'] - An optional pet name to prefix the deployment name.
  * @returns {string} - The normalized deployment name.
  */
-function getInstanceDeploymentName({ name, petname = 'testing' }: InstanceDeploymentNameType): string {
+export function getInstanceDeploymentName({ name, petname = 'testing' }: InstanceDeploymentNameType): string {
 
     /**
      * Replaces all non-alphanumeric characters in the name with hyphens and converts the string to lowercase.
@@ -34,5 +34,3 @@ function getInstanceDeploymentName({ name, petname = 'testing' }: InstanceDeploy
 
     return `${petname}-${deploymentName}`;
 }
-
-export { mergeClasses, getInstanceDeploymentName };

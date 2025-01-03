@@ -3,12 +3,6 @@ import Docker from "dockerode";
 import { getInstanceDeploymentName } from "./utils";
 import type { InstanceDocker } from "@/app/contexts/instances";
 
-// type createContainerType = {
-//   image: string;
-//   name: string;
-//   port: string;
-// };
-
 /**
  * Creates and starts a Docker container.
  *

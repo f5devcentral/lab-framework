@@ -31,7 +31,7 @@ const Button: React.FC<ButtonProps> = ({
   className,
   children,
   disabled = false,
-} : ButtonProps) => {
+} : ButtonProps): JSX.Element => {
   const [isDisabled, setIsDisabled] = useState<boolean>(disabled);
 
   return (
@@ -40,13 +40,13 @@ const Button: React.FC<ButtonProps> = ({
         className ? mergeClasses(buttonStyles, className) : buttonStyles
       }
       onClick={async () => {
-        setIsDisabled(true);
+        setIsDisabled(!disabled);
         try {
           await onClick();
         } catch (error) {
           console.error("Button onClick Error: ", error);
         }
-        setIsDisabled(false);
+        setIsDisabled(disabled);
       }}
       disabled={isDisabled}
     >

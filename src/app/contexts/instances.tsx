@@ -1,5 +1,5 @@
 "use client";
-import React, {
+import {
   createContext,
   useContext,
   useState,
@@ -78,7 +78,7 @@ const InstancesContext = createContext<InstancesContextType | undefined>(
 const InstancesContextProvider = ({
   children,
 }: InstancesContextProviderProps) => {
-  const [instances, setInstances] = useState<Instance[] | null>(null);
+  const [instances, setInstances] = useState<Instance[]>([]);
 
   // load instances from local storage on first render
   useEffect(() => {
@@ -115,7 +115,9 @@ const InstancesContextProvider = ({
       }
 
       console.log("Creating docker instance");
-    } else if (instance.type === InstanceType.K8s) {
+    }
+    // The following code is commented out because the K8s and Udf instances are not implemented yet
+    else if (instance.type === InstanceType.K8s) {
       // create k8s instance
       console.log("Creating k8s instance");
     } else if (instance.type === InstanceType.Udf) {
@@ -123,9 +125,7 @@ const InstancesContextProvider = ({
       console.log("Creating udf instance");
     }
 
-    setInstances((prevInstances) =>
-      prevInstances !== null ? [...prevInstances, instance] : [instance]
-    );
+    setInstances((prevInstances) => [...prevInstances, instance]);
   };
 
   const removeInstance = async <T extends Instance>(
@@ -134,6 +134,7 @@ const InstancesContextProvider = ({
     // based on the type of instance, remove the instance
     if (instance.type === InstanceType.Docker) {
       // remove docker instance
+      console.log("Removing docker instance");
       try {
         await removeContainer(instance.name);
         removeInstanceFromState(instance.name);
@@ -148,7 +149,6 @@ const InstancesContextProvider = ({
           removeInstanceFromState(instance.name);
         }
       }
-      console.log("Removing docker instance");
     } else if (instance.type === InstanceType.K8s) {
       // remove k8s instance
       console.log("Removing k8s instance");
@@ -160,9 +160,7 @@ const InstancesContextProvider = ({
 
     function removeInstanceFromState(instanceName: string) {
       setInstances((prevInstances) =>
-        prevInstances !== null
-          ? prevInstances.filter((i) => i.name !== instanceName)
-          : []
+        prevInstances.filter((i) => i.name !== instanceName)
       );
     }
   };
@@ -179,7 +177,6 @@ const InstancesContextProvider = ({
 // Custom hook to use the state context
 const useInstancesContext = () => {
   const context = useContext(InstancesContext);
-  // console.debug('context', context);
   if (!context) {
     throw new Error(
       "useInstancesContext must be used within a InstancesContextProvider"

@@ -49,7 +49,8 @@
 				"dbaeumer.vscode-eslint",
 				"GitHub.vscode-pull-request-github",
 				"eamodio.gitlens",
-				"lllllllqw.jsdoc"
+				"lllllllqw.jsdoc",
+				"Orta.vscode-jest"
 			]
 		}
 	},

@@ -18,5 +18,6 @@
         "settings.json",
         "jsonconfig.json"
     ],
-    "typescript.validate.enable": true
+    "typescript.validate.enable": true,
+    // "jest.runMode": "on-demand",
 }
