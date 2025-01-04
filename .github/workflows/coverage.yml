@@ -16,10 +16,11 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: "npm"
-      - uses: ArtiomTr/jest-coverage-report-action@v2.1.2
+      - uses: ArtiomTr/jest-coverage-report-action@v2.3.1
         id: coverage
         with:
           annotations: none
           package-manager: npm
           test-script: npm run test-cover
+          coverage-file: ./coverage/coverage-final.json
           icons: emoji
