@@ -1,7 +1,11 @@
 "use server";
 import Docker from "dockerode";
 import { getInstanceDeploymentName } from "./utils";
-import type { InstanceDocker } from "@/app/contexts/instances";
+import {
+  InstanceDocker,
+  Protocol,
+  InstanceDockerPorts,
+} from "@/app/contexts/instances";
 
 /**
  * Creates and starts a Docker container.
@@ -17,19 +21,18 @@ const createContainer = async ({
   image,
   name,
   ports,
-}: InstanceDocker): Promise<void> => {
+}: Omit<InstanceDocker, "type">): Promise<void> => {
   const docker = new Docker();
+  const defaultProtocol = Protocol.Tcp;
+  const mappedPorts = mapPorts(
+    ports ?? [{ containerPort: 80, hostPort: 8080, protocol: defaultProtocol }],
+    defaultProtocol
+  );
   const container = await docker.createContainer({
     Image: image,
     name: getInstanceDeploymentName({ name }),
     HostConfig: {
-      PortBindings: {
-        "80/tcp": [
-          {
-            HostPort: ports,
-          },
-        ],
-      },
+      PortBindings: mappedPorts,
     },
   });
   await container.start();
@@ -63,5 +66,21 @@ const removeContainer = async (containerId: string): Promise<void> => {
   await container.stop();
   await container.remove();
 };
+
+const mapPorts = (ports: InstanceDockerPorts[], defaultProtocol: Protocol) =>
+  ports?.reduce(
+    (
+      acc: { [key: string]: { HostPort: string }[] },
+      { containerPort, hostPort, protocol }
+    ) => {
+      if (hostPort !== undefined) {
+        acc[`${containerPort}/${protocol ?? defaultProtocol}`] = [
+          { HostPort: hostPort.toString() },
+        ];
+      }
+      return acc;
+    },
+    {}
+  );
 
 export { createContainer, removeContainer, stopContainer };

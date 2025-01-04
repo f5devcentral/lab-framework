@@ -123,7 +123,7 @@ describe("variables", () => {
     it("should return the value from the first source that has it", async () => {
       (fetchLabInfo as jest.Mock).mockResolvedValueOnce(null);
       (fetchUDFInfo as jest.Mock).mockResolvedValueOnce("udf_value");
-      const result = await getVariable("TEST_VAR");
+      const result = await getVariable<string>("TEST_VAR");
       expect(result).toBe("udf_value");
     });
 

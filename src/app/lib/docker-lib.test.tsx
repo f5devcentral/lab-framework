@@ -5,6 +5,7 @@ import {
   stopContainer,
 } from "@/app/lib/docker-lib";
 import { getInstanceDeploymentName } from "@/app/lib/utils";
+import { InstanceDockerPorts, Protocol } from "../contexts/instances";
 
 jest.mock("dockerode");
 jest.mock("@/app/lib/utils");
@@ -32,7 +33,7 @@ describe("Docker Library", () => {
   });
 
   describe("createContainer", () => {
-    it("should create and start a Docker container", async () => {
+    it("should create and start a Docker container with default port settings", async () => {
       await createContainer({
         image: "test-image",
         name: "test-name",
@@ -44,7 +45,32 @@ describe("Docker Library", () => {
         name: "mock-test-name",
         HostConfig: {
           PortBindings: {
-            "80/tcp": [{ HostPort: [{ containerPort: 80, hostPort: 8080 }] }],
+            "80/tcp": [{ HostPort: "8080" }],
+          },
+        },
+      });
+      expect(mockContainer.start).toHaveBeenCalled();
+    });
+  });
+
+  describe("createContainer", () => {
+    it("should create and start a Docker container with custom port settings", async () => {
+      await createContainer({
+        image: "test-image",
+        name: "test-name",
+        ports: [
+          { containerPort: 81, hostPort: 8081 },
+          { containerPort: 82, hostPort: 8082, protocol: Protocol.Udp },
+        ] as InstanceDockerPorts[],
+      });
+
+      expect(mockDocker.createContainer).toHaveBeenCalledWith({
+        Image: "test-image",
+        name: "mock-test-name",
+        HostConfig: {
+          PortBindings: {
+            "81/tcp": [{ HostPort: "8081" }],
+            "82/udp": [{ HostPort: "8082" }],
           },
         },
       });

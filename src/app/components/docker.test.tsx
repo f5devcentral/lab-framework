@@ -1,6 +1,6 @@
 import { render, fireEvent } from "@testing-library/react";
 import { DockerInstance } from "./docker";
-import { useInstancesContext, InstanceType } from "@/app/contexts/instances";
+import { useInstancesContext } from "@/app/contexts/instances";
 
 jest.mock("@/app/contexts/instances");
 
@@ -31,17 +31,20 @@ describe("DockerInstance Component", () => {
 
   it("should call addInstance when Create button is clicked", async () => {
     const { getByText } = render(
-      <DockerInstance name="Test Docker" image="test-image" />
+      <DockerInstance
+        name="Test Docker"
+        image="test-image"
+        ports={[{ containerPort: 8089, hostPort: 9000 }]}
+      />
     );
 
     const createButton = getByText("Create");
     fireEvent.click(createButton);
 
     expect(mockAddInstance).toHaveBeenCalledWith({
-      type: InstanceType.Docker,
       image: "test-image",
       name: "Test Docker",
-      port: "8080",
+      ports: [{ containerPort: 8089, hostPort: 9000 }],
     });
   });
 
@@ -54,7 +57,6 @@ describe("DockerInstance Component", () => {
     fireEvent.click(stopButton);
 
     expect(mockRemoveInstance).toHaveBeenCalledWith({
-      type: InstanceType.Docker,
       name: "Test Docker",
     });
   });
@@ -74,7 +76,11 @@ describe("DockerInstance Component", () => {
   it("should render custom ports if provided", () => {
     const customPorts = [{ containerPort: 8080, hostPort: 8080 }];
     const { getByText } = render(
-      <DockerInstance name="Test Docker" image="test-image" ports={[customPorts[0]]} />
+      <DockerInstance
+        name="Test Docker"
+        image="test-image"
+        ports={[customPorts[0]]}
+      />
     );
 
     expect(getByText("8080")).toBeInTheDocument();

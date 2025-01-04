@@ -1,6 +1,34 @@
-export type Document = {
-  name: string;
-  description: string;
+export type Petname = string | null;
+
+export type ComponentInfo = {
+  host: string;
+  ports: {
+    host: number;
+  };
 };
 
-export type Petname = string | null;
+export type Document = {
+  name: string;
+  location: string;
+  documentData: DocumentData;
+};
+
+
+export type DocumentData = {
+  content: string;
+  metadata: {
+    order?: number;
+    [key: string]: unknown;
+  };
+}
+
+export type Frontmatter = {
+  content: string;
+  metadata: Record<string, unknown>;
+}
+
+export type GitHubFile = {
+  name: string;
+  url: string;
+  type: string;
+}

@@ -28,30 +28,49 @@ interface InstanceDockerEnv {
 interface InstanceDockerPorts {
   containerPort: number;
   hostPort?: number;
+  protocol?: Protocol;
+}
+
+enum Protocol {
+  Tcp = "tcp",
+  Udp = "udp",
 }
 
 interface InstanceDocker extends InstanceBase {
-  type?: InstanceType.Docker;
+  type: InstanceType.Docker;
   name: string;
   description?: string;
   image: string;
-  ports?: [InstanceDockerPorts];
-  env?: [InstanceDockerEnv];
+  ports?: InstanceDockerPorts[];
+  env?: InstanceDockerEnv[];
 }
 
 interface InstanceK8s extends InstanceBase {
-  type?: InstanceType.K8s;
+  type: InstanceType.K8s;
   name: string;
   url: string;
   kubeconfig: string;
 }
 
 interface InstanceUdf extends InstanceBase {
-  type?: InstanceType.Udf;
+  type: InstanceType.Udf;
   name: string;
 }
 
 type Instance = InstanceDocker | InstanceK8s | InstanceUdf;
+
+// Type guards
+function isInstanceDocker(instance: Instance): instance is InstanceDocker {
+  return (instance as InstanceDocker).type === InstanceType.Docker;
+}
+
+function isInstanceK8s(instance: Instance): instance is InstanceK8s {
+  return (instance as InstanceK8s).type === InstanceType.K8s;
+}
+
+function isInstanceUdf(instance: Instance): instance is InstanceUdf {
+  return (instance as InstanceUdf).type === InstanceType.Udf;
+}
 
 type InstancesContextProviderProps = {
   children: ReactNode;
@@ -101,10 +120,9 @@ const InstancesContextProvider = ({
     }
 
     // based on the type of instance, create the instance
-    if (instance.type === InstanceType.Docker) {
+    if (isInstanceDocker(instance)) {
       // create docker instance
       try {
-        // await createContainer({ image: (instance as InstanceDocker).image, name: instance.name, port: '8080' } as InstanceDocker);
         await createContainer({
           image: instance.image,
           name: instance.name,
@@ -117,10 +135,10 @@ const InstancesContextProvider = ({
       console.log("Creating docker instance");
     }
     // The following code is commented out because the K8s and Udf instances are not implemented yet
-    else if (instance.type === InstanceType.K8s) {
+    else if (isInstanceK8s(instance)) {
       // create k8s instance
       console.log("Creating k8s instance");
-    } else if (instance.type === InstanceType.Udf) {
+    } else if (isInstanceUdf(instance)) {
       // create udf instance
       console.log("Creating udf instance");
     }
@@ -185,7 +203,13 @@ const useInstancesContext = () => {
   return context;
 };
 
-export { InstancesContextProvider, useInstancesContext, InstanceType };
+export {
+  InstancesContextProvider,
+  useInstancesContext,
+  InstanceType,
+  Protocol,
+};
+
 export type {
   Instance,
   InstanceDocker,

@@ -7,14 +7,21 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest --watch"
+    "test": "jest --watch",
+    "test-coverage": "jest --coverage"
   },
   "dependencies": {
+    "@pondorasti/remark-img-links": "^1.0.8",
     "dockerode": "^4.0.2",
+    "gray-matter": "^4.0.3",
     "next": "14.2.8",
+    "next-mdx-remote": "^5.0.0",
     "react": "^18",
     "react-dom": "^18",
-    "tailwind-merge": "^2.5.2"
+    "remark-emoji": "^5.0.1",
+    "remark-gfm": "^4.0.0",
+    "tailwind-merge": "^2.5.2",
+    "unified": "^11.0.5"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",

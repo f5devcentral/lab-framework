@@ -1,6 +1,6 @@
 "use client";
 import { Button } from "@/app/components/button";
-import { useInstancesContext, InstanceType } from "@/app/contexts/instances";
+import { useInstancesContext } from "@/app/contexts/instances";
 import type {
   InstanceDocker,
   InstanceDockerPorts,
@@ -19,13 +19,17 @@ const defaultPorts: InstanceDockerPorts[] = [
  * @param {InstanceDocker} props - The props for the DockerInstance component.
  * @returns {JSX.Element} - The rendered DockerInstance component.
  */
-const DockerInstance: React.FC<InstanceDocker> = ({
+export function DockerInstance({
   name,
   description = "",
   image,
-  ports = defaultPorts as [InstanceDockerPorts],
-  type = InstanceType.Docker,
-}: InstanceDocker): JSX.Element => {
+  ports = defaultPorts as InstanceDockerPorts[],
+}: {
+  name: string;
+  description?: string;
+  image: string;
+  ports?: InstanceDockerPorts[];
+}) {
   const { addInstance, removeInstance } = useInstancesContext();
   return (
     <>
@@ -47,10 +51,9 @@ const DockerInstance: React.FC<InstanceDocker> = ({
         <Button
           onClick={async () => {
             await addInstance({
-              type,
               image,
               name,
-              port: "8080",
+              ports
             } as InstanceDocker);
           }}
           className="bg-blue-500"
@@ -60,7 +63,7 @@ const DockerInstance: React.FC<InstanceDocker> = ({
         <span className="px-1" />
         <Button
           onClick={async () => {
-            await removeInstance({ type, name } as InstanceDocker);
+            await removeInstance({ name } as InstanceDocker);
           }}
           className="bg-red-500"
         >
@@ -69,6 +72,4 @@ const DockerInstance: React.FC<InstanceDocker> = ({
       </div>
     </>
   );
-};
-
-export { DockerInstance };
+}

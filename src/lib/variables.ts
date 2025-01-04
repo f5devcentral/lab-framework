@@ -85,17 +85,20 @@ export async function getPetname(): Promise<Petname> {
  *  - UDF API
  *
  * @param {string} name - The name of the variable to retrieve
- * @returns {Promise<string|null>} The value of the variable, or null if it does not exist
+ * @returns {Promise<T | null>} The value of the variable, or null if it does not exist
  */
-export async function getVariable(name: string) {
+export async function getVariable<T>(name: string): Promise<T | null> {
     const sources = [getEnvVariable, fetchLabInfo, fetchUDFInfo];
     for (const source of sources) {
         const value = await source(name);
         if (value) {
-            return value;
+            try {
+                const json = JSON.parse(value);
+                return json as T;
+            } catch (error) { /* not valid JSON */ }
+            return value as T;
         }
     }
-
     return null;
 }
 
