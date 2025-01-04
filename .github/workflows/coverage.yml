@@ -21,6 +21,5 @@ jobs:
         with:
           annotations: none
           package-manager: npm
-          test-script: npm run test-cover
-          coverage-file: ./coverage/coverage-final.json
+          test-script: npm run test-coverage
           icons: emoji
