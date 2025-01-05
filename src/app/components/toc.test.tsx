@@ -31,7 +31,6 @@ describe("ToC Component", () => {
       </div>
     );
 
-    console.log(document.body.innerHTML);
     expect(screen.getByText("Heading 1")).toBeInTheDocument();
     expect(screen.getByText("Heading 2")).toBeInTheDocument();
     expect(screen.getByText("Heading 3")).toBeInTheDocument();
