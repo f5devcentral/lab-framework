@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@pondorasti/remark-img-links": "^1.0.8",
-    "dockerode": "^4.0.2",
+    "dockerode": "^4.0.3",
     "gray-matter": "^4.0.3",
     "next": "14.2.8",
     "next-mdx-remote": "^5.0.0",
