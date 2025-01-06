@@ -1,11 +1,12 @@
-/** @type {import('next').NextConfig} */
+/** @type {import("next").NextConfig} */
 const nextConfig = {
-  pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
+  pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
   reactStrictMode: true,
-  output: 'standalone',
+  output: "standalone",
   experimental: {
-    serverComponentsExternalPackages: ['dockerode'],
+    serverComponentsExternalPackages: ["dockerode"],
   },
+  
 };
 
 export default nextConfig;

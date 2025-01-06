@@ -2,8 +2,8 @@ import { render, screen, act } from "@testing-library/react";
 import {
   InstancesContextProvider,
   useInstancesContext,
-  InstanceType,
 } from "./instances";
+import { InstanceType } from "@/lib/types";
 
 import { createContainer, removeContainer } from "@/app/lib/docker-lib";
 
@@ -144,6 +144,7 @@ describe("InstancesContextProvider", () => {
       await act(async () => {
         removeButton.click();
       });
+
       consoleLogMock.mockRestore();
     }
   );
@@ -176,6 +177,7 @@ describe("InstancesContextProvider", () => {
     await act(async () => {
       removeButton.click();
     });
+
     consoleErrorMock.mockRestore();
   });
 

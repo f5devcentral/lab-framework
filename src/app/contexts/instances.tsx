@@ -7,12 +7,7 @@ import {
   ReactNode,
 } from "react";
 import { createContainer, removeContainer } from "@/app/lib/docker-lib";
-
-enum InstanceType {
-  Docker,
-  Udf,
-  K8s,
-}
+import { InstanceType, Protocol } from "@/lib/types";
 
 interface InstanceBase {
   name: string;
@@ -29,11 +24,6 @@ interface InstanceDockerPorts {
   containerPort: number;
   hostPort?: number;
   protocol?: Protocol;
-}
-
-enum Protocol {
-  Tcp = "tcp",
-  Udp = "udp",
 }
 
 interface InstanceDocker extends InstanceBase {
@@ -205,12 +195,14 @@ const useInstancesContext = () => {
 
 export {
   InstancesContextProvider,
+  InstancesContext,
   useInstancesContext,
   InstanceType,
   Protocol,
 };
 
 export type {
+  InstancesContextType,
   Instance,
   InstanceDocker,
   InstanceDockerEnv,

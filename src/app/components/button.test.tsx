@@ -1,5 +1,6 @@
 import { render, fireEvent, screen, act } from "@testing-library/react";
 import { Button } from "./button";
+import { delay } from "@/lib/utils";
 
 describe("Button Component", () => {
   it("should render the button with children", () => {
@@ -8,22 +9,26 @@ describe("Button Component", () => {
   });
 
   it("should call onClick when button is clicked", async () => {
-    const onClickMock = jest.fn().mockResolvedValueOnce(undefined);
+    const onClickMock = jest.fn().mockImplementation(async () => await delay(1000));
     render(<Button onClick={onClickMock}>Click Me</Button>);
 
     const button = screen.getByText("Click Me");
-    fireEvent.click(button);
+    await act(async () => {
+      fireEvent.click(button);
+    });
 
     expect(onClickMock).toHaveBeenCalled();
   });
 
   it("should enable the button after onClick is resolved", async () => {
-    const onClickMock = jest.fn().mockResolvedValueOnce(undefined);
+    const onClickMock = jest.fn().mockImplementation(async () => await delay(1000));
     render(<Button onClick={onClickMock}>Click Me</Button>);
-  
+
     const button = screen.getByText("Click Me");
-    fireEvent.click(button);
-  
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
     expect(button).toBeDisabled();
     await act(async () => {
       await onClickMock();
@@ -49,7 +54,9 @@ describe("Button Component", () => {
     render(<Button onClick={onClickMock}>Click Me</Button>);
 
     const button = screen.getByText("Click Me");
-    fireEvent.click(button);
+    await act(async () => {
+      fireEvent.click(button);
+    });
 
     await act(async () => {
       try {

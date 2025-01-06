@@ -1,24 +1,29 @@
-import { render, fireEvent } from "@testing-library/react";
-import { DockerInstance } from "./docker";
-import { useInstancesContext } from "@/app/contexts/instances";
+import { render, fireEvent, act } from "@testing-library/react";
+import { InstancesContextType } from "../contexts/instances";
 
-jest.mock("@/app/contexts/instances");
+const mockUseInstancesContext = jest.fn();
+const mockAddInstance = jest.fn();
+const mockRemoveInstance = jest.fn();
+
+const providerProps: InstancesContextType = {
+  instances: [],
+  addInstance: mockAddInstance,
+  removeInstance: mockRemoveInstance,
+};
+
+jest.mock("@/app/contexts/instances", () => ({
+  useInstancesContext: jest.fn().mockReturnValue(providerProps),
+}));
+
+mockUseInstancesContext.mockReturnValue({
+  addInstance: mockAddInstance,
+  removeInstance: mockRemoveInstance,
+  instances: [],
+});
+
+import { DockerInstance } from "./docker";
 
 describe("DockerInstance Component", () => {
-  const mockAddInstance = jest.fn();
-  const mockRemoveInstance = jest.fn();
-
-  beforeEach(() => {
-    (useInstancesContext as jest.Mock).mockReturnValue({
-      addInstance: mockAddInstance,
-      removeInstance: mockRemoveInstance,
-    });
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   it("should render DockerInstance with default props", () => {
     const { getByText } = render(
       <DockerInstance name="Test Docker" image="test-image" />
@@ -39,12 +44,15 @@ describe("DockerInstance Component", () => {
     );
 
     const createButton = getByText("Create");
-    fireEvent.click(createButton);
+    await act(async () => {
+      fireEvent.click(createButton);
+    });
 
     expect(mockAddInstance).toHaveBeenCalledWith({
       image: "test-image",
       name: "Test Docker",
       ports: [{ containerPort: 8089, hostPort: 9000 }],
+      type: 0,
     });
   });
 
@@ -54,10 +62,13 @@ describe("DockerInstance Component", () => {
     );
 
     const stopButton = getByText("Stop");
-    fireEvent.click(stopButton);
+    await act(async () => {
+      fireEvent.click(stopButton);
+    });
 
     expect(mockRemoveInstance).toHaveBeenCalledWith({
       name: "Test Docker",
+      type: 0,
     });
   });
 

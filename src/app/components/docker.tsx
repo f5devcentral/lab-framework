@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "@/app/components/button";
 import { useInstancesContext } from "@/app/contexts/instances";
+import { InstanceType } from "@/lib/types";
 import type {
   InstanceDocker,
   InstanceDockerPorts,
@@ -53,7 +54,8 @@ export function DockerInstance({
             await addInstance({
               image,
               name,
-              ports
+              ports,
+              type: InstanceType.Docker,
             } as InstanceDocker);
           }}
           className="bg-blue-500"
@@ -63,7 +65,10 @@ export function DockerInstance({
         <span className="px-1" />
         <Button
           onClick={async () => {
-            await removeInstance({ name } as InstanceDocker);
+            await removeInstance({
+              name,
+              type: InstanceType.Docker,
+            } as InstanceDocker);
           }}
           className="bg-red-500"
         >

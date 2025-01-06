@@ -1,46 +1,50 @@
-import Docker from "dockerode";
+import { act } from "@testing-library/react";
+// import Docker from "dockerode";
 import {
   createContainer,
   removeContainer,
   stopContainer,
 } from "@/app/lib/docker-lib";
 import { getInstanceDeploymentName } from "@/app/lib/utils";
-import { InstanceDockerPorts, Protocol } from "../contexts/instances";
+import { InstanceDockerPorts } from "../contexts/instances";
+import { Protocol } from "@/lib/types";
 
-jest.mock("dockerode");
 jest.mock("@/app/lib/utils");
 
-describe("Docker Library", () => {
-  const mockDocker = new Docker() as jest.Mocked<Docker>;
-  const mockContainer = {
-    start: jest.fn(),
-    stop: jest.fn(),
-    remove: jest.fn(),
-  };
+const mockContainer = {
+  inspect: jest.fn().mockResolvedValue({ State: { Status: "running" } }),
+  start: jest.fn(),
+  stop: jest.fn(),
+  remove: jest.fn(),
+};
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (Docker as unknown as jest.Mock).mockImplementation(() => mockDocker);
-    mockDocker.createContainer.mockResolvedValue(
-      mockContainer as unknown as jest.Mocked<Docker.Container>
-    );
-    mockDocker.getContainer.mockReturnValue(
-      mockContainer as unknown as jest.Mocked<Docker.Container>
-    );
-    (getInstanceDeploymentName as jest.Mock).mockImplementation(
-      ({ name }) => `mock-${name}`
-    );
-  });
+const mockDockerode = {
+  createContainer: jest.fn().mockReturnValue(mockContainer),
+  getContainer: jest.fn().mockReturnValue(mockContainer),
+};
+
+jest.mock('dockerode', () => {
+  return jest.fn().mockImplementation(() => mockDockerode);
+});
+
+(getInstanceDeploymentName as jest.Mock).mockImplementation(
+  ({ name }) => `mock-${name}`
+);
+
+describe("Docker Library", () => {
 
   describe("createContainer", () => {
     it("should create and start a Docker container with default port settings", async () => {
-      await createContainer({
-        image: "test-image",
-        name: "test-name",
-        ports: [{ containerPort: 80, hostPort: 8080 }],
+
+      await act(async () => {
+        await createContainer({
+          image: "test-image",
+          name: "test-name",
+          ports: [{ containerPort: 80, hostPort: 8080 }],
+        });
       });
 
-      expect(mockDocker.createContainer).toHaveBeenCalledWith({
+      expect(mockDockerode.createContainer).toHaveBeenCalledWith({
         Image: "test-image",
         name: "mock-test-name",
         HostConfig: {
@@ -64,7 +68,7 @@ describe("Docker Library", () => {
         ] as InstanceDockerPorts[],
       });
 
-      expect(mockDocker.createContainer).toHaveBeenCalledWith({
+      expect(mockDockerode.createContainer).toHaveBeenCalledWith({
         Image: "test-image",
         name: "mock-test-name",
         HostConfig: {
@@ -82,7 +86,7 @@ describe("Docker Library", () => {
     it("should stop a running Docker container", async () => {
       await stopContainer("test-container-id");
 
-      expect(mockDocker.getContainer).toHaveBeenCalledWith(
+      expect(mockDockerode.getContainer).toHaveBeenCalledWith(
         "mock-test-container-id"
       );
       expect(mockContainer.stop).toHaveBeenCalled();
@@ -93,7 +97,7 @@ describe("Docker Library", () => {
     it("should stop and remove a Docker container", async () => {
       await removeContainer("test-container-id");
 
-      expect(mockDocker.getContainer).toHaveBeenCalledWith(
+      expect(mockDockerode.getContainer).toHaveBeenCalledWith(
         "mock-test-container-id"
       );
       expect(mockContainer.stop).toHaveBeenCalled();

@@ -32,3 +32,13 @@ export type GitHubFile = {
   url: string;
   type: string;
 }
+
+export enum Protocol {
+  Tcp = "tcp",
+  Udp = "udp"
+}
+export enum InstanceType {
+  Docker,
+  Udf,
+  K8s
+}

@@ -3,9 +3,21 @@ import Docker from "dockerode";
 import { getInstanceDeploymentName } from "./utils";
 import {
   InstanceDocker,
-  Protocol,
   InstanceDockerPorts,
 } from "@/app/contexts/instances";
+import { Protocol } from "@/lib/types";
+
+const ContainerState = {
+  Created: "created",
+  Running: "running",
+  Paused: "paused",
+  Restarting: "restarting",
+  Removing: "removing",
+  Exited: "exited",
+  Dead: "dead",
+} as const;
+
+type ContainerState = typeof ContainerState[keyof typeof ContainerState];
 
 /**
  * Creates and starts a Docker container.
@@ -60,10 +72,14 @@ const stopContainer = async (containerId: string): Promise<void> => {
  */
 const removeContainer = async (containerId: string): Promise<void> => {
   const docker = new Docker();
+  const status = await getContainerStatus(containerId);
   const container = docker.getContainer(
     getInstanceDeploymentName({ name: containerId })
   );
-  await container.stop();
+
+  if (status === ContainerState.Running) {
+    await container.stop();
+  }
   await container.remove();
 };
 
@@ -82,5 +98,20 @@ const mapPorts = (ports: InstanceDockerPorts[], defaultProtocol: Protocol) =>
     },
     {}
   );
+
+/**
+ * Gets the current status of a Docker container.
+ *
+ * @param {string} containerId - The ID of the container to inspect.
+ * @returns {Promise<ContainerState>} - A promise that resolves with the container's status.
+ */
+const getContainerStatus = async (containerId: string): Promise<ContainerState> => {
+  const docker = new Docker();
+  const container = docker.getContainer(
+    getInstanceDeploymentName({ name: containerId })
+  );
+  const data = await container.inspect();
+  return data.State.Status as ContainerState;
+};
 
 export { createContainer, removeContainer, stopContainer };
