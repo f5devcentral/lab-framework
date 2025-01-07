@@ -1,5 +1,5 @@
 "use client";
-import React, {
+import {
   createContext,
   useContext,
   useState,
@@ -7,12 +7,7 @@ import React, {
   ReactNode,
 } from "react";
 import { createContainer, removeContainer } from "@/app/lib/docker-lib";
-
-enum InstanceType {
-  Docker,
-  Udf,
-  K8s,
-}
+import { InstanceType, Protocol } from "@/lib/types";
 
 interface InstanceBase {
   name: string;
@@ -28,30 +23,44 @@ interface InstanceDockerEnv {
 interface InstanceDockerPorts {
   containerPort: number;
   hostPort?: number;
+  protocol?: Protocol;
 }
 
 interface InstanceDocker extends InstanceBase {
-  type?: InstanceType.Docker;
+  type: InstanceType.Docker;
   name: string;
   description?: string;
   image: string;
-  ports?: [InstanceDockerPorts];
-  env?: [InstanceDockerEnv];
+  ports?: InstanceDockerPorts[];
+  env?: InstanceDockerEnv[];
 }
 
 interface InstanceK8s extends InstanceBase {
-  type?: InstanceType.K8s;
+  type: InstanceType.K8s;
   name: string;
   url: string;
   kubeconfig: string;
 }
 
 interface InstanceUdf extends InstanceBase {
-  type?: InstanceType.Udf;
+  type: InstanceType.Udf;
   name: string;
 }
 
 type Instance = InstanceDocker | InstanceK8s | InstanceUdf;
+
+// Type guards
+function isInstanceDocker(instance: Instance): instance is InstanceDocker {
+  return (instance as InstanceDocker).type === InstanceType.Docker;
+}
+
+function isInstanceK8s(instance: Instance): instance is InstanceK8s {
+  return (instance as InstanceK8s).type === InstanceType.K8s;
+}
+
+function isInstanceUdf(instance: Instance): instance is InstanceUdf {
+  return (instance as InstanceUdf).type === InstanceType.Udf;
+}
 
 type InstancesContextProviderProps = {
   children: ReactNode;
@@ -78,7 +87,7 @@ const InstancesContext = createContext<InstancesContextType | undefined>(
 const InstancesContextProvider = ({
   children,
 }: InstancesContextProviderProps) => {
-  const [instances, setInstances] = useState<Instance[] | null>(null);
+  const [instances, setInstances] = useState<Instance[]>([]);
 
   // load instances from local storage on first render
   useEffect(() => {
@@ -101,10 +110,9 @@ const InstancesContextProvider = ({
     }
 
     // based on the type of instance, create the instance
-    if (instance.type === InstanceType.Docker) {
+    if (isInstanceDocker(instance)) {
       // create docker instance
       try {
-        // await createContainer({ image: (instance as InstanceDocker).image, name: instance.name, port: '8080' } as InstanceDocker);
         await createContainer({
           image: instance.image,
           name: instance.name,
@@ -115,17 +123,17 @@ const InstancesContextProvider = ({
       }
 
       console.log("Creating docker instance");
-    } else if (instance.type === InstanceType.K8s) {
+    }
+    // The following code is commented out because the K8s and Udf instances are not implemented yet
+    else if (isInstanceK8s(instance)) {
       // create k8s instance
       console.log("Creating k8s instance");
-    } else if (instance.type === InstanceType.Udf) {
+    } else if (isInstanceUdf(instance)) {
       // create udf instance
       console.log("Creating udf instance");
     }
 
-    setInstances((prevInstances) =>
-      prevInstances !== null ? [...prevInstances, instance] : [instance]
-    );
+    setInstances((prevInstances) => [...prevInstances, instance]);
   };
 
   const removeInstance = async <T extends Instance>(
@@ -134,6 +142,7 @@ const InstancesContextProvider = ({
     // based on the type of instance, remove the instance
     if (instance.type === InstanceType.Docker) {
       // remove docker instance
+      console.log("Removing docker instance");
       try {
         await removeContainer(instance.name);
         removeInstanceFromState(instance.name);
@@ -148,7 +157,6 @@ const InstancesContextProvider = ({
           removeInstanceFromState(instance.name);
         }
       }
-      console.log("Removing docker instance");
     } else if (instance.type === InstanceType.K8s) {
       // remove k8s instance
       console.log("Removing k8s instance");
@@ -160,9 +168,7 @@ const InstancesContextProvider = ({
 
     function removeInstanceFromState(instanceName: string) {
       setInstances((prevInstances) =>
-        prevInstances !== null
-          ? prevInstances.filter((i) => i.name !== instanceName)
-          : []
+        prevInstances.filter((i) => i.name !== instanceName)
       );
     }
   };
@@ -179,7 +185,6 @@ const InstancesContextProvider = ({
 // Custom hook to use the state context
 const useInstancesContext = () => {
   const context = useContext(InstancesContext);
-  // console.debug('context', context);
   if (!context) {
     throw new Error(
       "useInstancesContext must be used within a InstancesContextProvider"
@@ -188,8 +193,16 @@ const useInstancesContext = () => {
   return context;
 };
 
-export { InstancesContextProvider, useInstancesContext, InstanceType };
+export {
+  InstancesContextProvider,
+  InstancesContext,
+  useInstancesContext,
+  InstanceType,
+  Protocol,
+};
+
 export type {
+  InstancesContextType,
   Instance,
   InstanceDocker,
   InstanceDockerEnv,

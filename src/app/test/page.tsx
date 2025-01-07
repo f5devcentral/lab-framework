@@ -14,6 +14,7 @@ const RoutePage: React.FC = () => {
           name="NGINX Plus R32"
           description="NGINX Plus R32 with NGINX Agent"
           image="private-registry.nginx.com/nginx-plus/agent:debian"
+          ports={[{ containerPort: 80, hostPort: 8089 }]}
         />
       </Card>
     </InstancesContextProvider>
