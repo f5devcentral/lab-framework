@@ -41,4 +41,15 @@ export enum InstanceType {
   Docker,
   Udf,
   K8s
-}
+}export const InstanceState = {
+  Creating: "creating",
+  Created: "created",
+  Running: "running",
+  Paused: "paused",
+  Restarting: "restarting",
+  Removing: "removing",
+  Exited: "exited",
+  Dead: "dead",
+  Unknown: "unknown",
+} as const;
+export type InstanceState = (typeof InstanceState)[keyof typeof InstanceState];

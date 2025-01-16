@@ -4,6 +4,7 @@ import {
   createContainer,
   removeContainer,
   stopContainer,
+  getContainerStatus
 } from "@/app/lib/docker-lib";
 import { getInstanceDeploymentName } from "@/app/lib/utils";
 import { InstanceDockerPorts } from "../contexts/instances";
@@ -102,6 +103,76 @@ describe("Docker Library", () => {
       );
       expect(mockContainer.stop).toHaveBeenCalled();
       expect(mockContainer.remove).toHaveBeenCalled();
+    });
+  });
+
+  describe("getContainerStatus", () => {
+    it("should return the status of a running Docker container", async () => {
+      const status = await getContainerStatus("test-container-id");
+
+      expect(mockDockerode.getContainer).toHaveBeenCalledWith(
+        "mock-test-container-id"
+      );
+      expect(mockContainer.inspect).toHaveBeenCalled();
+      expect(status).toBe("running");
+    });
+
+    it("should return the status of a stopped Docker container", async () => {
+      mockContainer.inspect.mockResolvedValueOnce({ State: { Status: "exited" } });
+
+      const status = await getContainerStatus("test-container-id");
+
+      expect(mockDockerode.getContainer).toHaveBeenCalledWith(
+        "mock-test-container-id"
+      );
+      expect(mockContainer.inspect).toHaveBeenCalled();
+      expect(status).toBe("exited");
+    });
+
+    it("should return the status of a running Docker container", async () => {
+      const status = await getContainerStatus("test-container-id");
+
+      expect(mockDockerode.getContainer).toHaveBeenCalledWith(
+        "mock-test-container-id"
+      );
+      expect(mockContainer.inspect).toHaveBeenCalled();
+      expect(status).toBe("running");
+    });
+
+    it("should return the status of a stopped Docker container", async () => {
+      mockContainer.inspect.mockResolvedValueOnce({ State: { Status: "exited" } });
+
+      const status = await getContainerStatus("test-container-id");
+
+      expect(mockDockerode.getContainer).toHaveBeenCalledWith(
+        "mock-test-container-id"
+      );
+      expect(mockContainer.inspect).toHaveBeenCalled();
+      expect(status).toBe("exited");
+    });
+
+    it("should return 'unknown' if the container does not exist", async () => {
+      mockContainer.inspect.mockRejectedValueOnce(new Error("no such container"));
+
+      const status = await getContainerStatus("test-container-id");
+
+      expect(mockDockerode.getContainer).toHaveBeenCalledWith(
+        "mock-test-container-id"
+      );
+      expect(mockContainer.inspect).toHaveBeenCalled();
+      expect(status).toBe("unknown");
+    });
+
+    it("should throw an error for other inspection errors", async () => {
+      const error = new Error("some other error");
+      mockContainer.inspect.mockRejectedValueOnce(error);
+
+      await expect(getContainerStatus("test-container-id")).rejects.toThrow(error);
+
+      expect(mockDockerode.getContainer).toHaveBeenCalledWith(
+        "mock-test-container-id"
+      );
+      expect(mockContainer.inspect).toHaveBeenCalled();
     });
   });
 });

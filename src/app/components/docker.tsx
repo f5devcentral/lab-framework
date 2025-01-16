@@ -1,11 +1,13 @@
 "use client";
 import { Button } from "@/app/components/button";
 import { useInstancesContext } from "@/app/contexts/instances";
-import { InstanceType } from "@/lib/types";
+import { InstanceState, InstanceType } from "@/lib/types";
+import { getContainerStatus } from "@/app/lib/docker-lib";
 import type {
   InstanceDocker,
   InstanceDockerPorts,
 } from "@/app/contexts/instances";
+import { useEffect, useState } from "react";
 
 /**
  * The default ports for a Docker instance.
@@ -32,6 +34,20 @@ export function DockerInstance({
   ports?: InstanceDockerPorts[];
 }) {
   const { addInstance, removeInstance } = useInstancesContext();
+
+  const [state, setState] = useState<InstanceState>(InstanceState.Unknown);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      const instanceState = await getContainerStatus(name);
+      setState(instanceState);
+      return instanceState as InstanceState;
+    };
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 5000);
+    return () => clearInterval(interval);
+  }, [name]);
+
   return (
     <>
       <div className="px-6 pt-4">
@@ -48,9 +64,13 @@ export function DockerInstance({
           {ports[0].hostPort}
         </span>
       </div>
+      <div className="px-6 pt-4">
+        <div className="font-bold text-xl mb-2 capitalize">Status: {state}</div>
+      </div>
       <div className="px-6 pb-5">
         <Button
           onClick={async () => {
+            setState(InstanceState.Creating);
             await addInstance({
               image,
               name,
@@ -58,6 +78,9 @@ export function DockerInstance({
               type: InstanceType.Docker,
             } as InstanceDocker);
           }}
+          disabled={
+            state === InstanceState.Creating || state === InstanceState.Running || state === InstanceState.Removing
+          }
           className="bg-blue-500"
         >
           Create
@@ -65,11 +88,13 @@ export function DockerInstance({
         <span className="px-1" />
         <Button
           onClick={async () => {
+            setState(InstanceState.Removing);
             await removeInstance({
               name,
               type: InstanceType.Docker,
             } as InstanceDocker);
           }}
+          disabled={state !== InstanceState.Running}
           className="bg-red-500"
         >
           Stop

@@ -24,25 +24,5 @@
           "action": "debugWithChrome"
         }
       },
-      {
-        "type": "node",
-        "name": "vscode-jest-tests.v2.workspace",
-        "request": "launch",
-        "args": [
-          "test",
-          "--",
-          "--runInBand",
-          "--watchAll=false",
-          "--testNamePattern",
-          "${jest.testNamePattern}",
-          "--runTestsByPath",
-          "${jest.testFile}"
-        ],
-        "cwd": "/workspace",
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen",
-        "disableOptimisticBPs": true,
-        "runtimeExecutable": "npm"
-      }
     ]
   }
