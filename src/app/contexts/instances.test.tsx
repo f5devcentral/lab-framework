@@ -5,11 +5,12 @@ import {
 } from "./instances";
 import { InstanceType } from "@/lib/types";
 
-import { createContainer, removeContainer } from "@/app/lib/docker-lib";
+import { createContainer, removeContainer, isContainerDoesNotExistError } from "@/app/lib/docker-lib";
 
 jest.mock("@/app/lib/docker-lib", () => ({
   createContainer: jest.fn(),
   removeContainer: jest.fn(),
+  isContainerDoesNotExistError: jest.fn(),
 }));
 
 describe("InstanceType Enum", () => {
@@ -242,6 +243,7 @@ describe("InstancesContextProvider", () => {
   it("should log an error if an error is thrown when removing an instance", async () => {
     const consoleErrorMock = jest.spyOn(console, "error").mockImplementation();
     const consoleLogMock = jest.spyOn(console, "log").mockImplementation();
+    (isContainerDoesNotExistError as jest.Mock).mockReturnValueOnce(true);
     (removeContainer as jest.Mock).mockRejectedValueOnce(
       new Error("no such container")
     );

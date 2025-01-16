@@ -1,5 +1,14 @@
-import { render, fireEvent, act } from "@testing-library/react";
+import { render, fireEvent, screen, act } from "@testing-library/react";
 import { InstancesContextType } from "../contexts/instances";
+
+import { getContainerStatus } from "@/app/lib/docker-lib";
+
+jest.mock("@/app/lib/docker-lib", () => ({
+  createContainer: jest.fn(),
+  removeContainer: jest.fn(),
+  isContainerDoesNotExistError: jest.fn(),
+  getContainerStatus: jest.fn().mockResolvedValue("unknown"),
+}));
 
 const mockUseInstancesContext = jest.fn();
 const mockAddInstance = jest.fn();
@@ -22,6 +31,7 @@ mockUseInstancesContext.mockReturnValue({
 });
 
 import { DockerInstance } from "./docker";
+import React from "react";
 
 describe("DockerInstance Component", () => {
   it("should render DockerInstance with default props", () => {
@@ -57,12 +67,15 @@ describe("DockerInstance Component", () => {
   });
 
   it("should call removeInstance when Stop button is clicked", async () => {
-    const { getByText } = render(
-      <DockerInstance name="Test Docker" image="test-image" />
-    );
+    (getContainerStatus as jest.Mock).mockResolvedValue("running");
 
-    const stopButton = getByText("Stop");
     await act(async () => {
+      render(<DockerInstance name="Test Docker" image="test-image" />);
+    });
+
+    await act(async () => {
+      const stopButton = screen.getByText("Stop");
+      expect(stopButton).not.toBeDisabled();
       fireEvent.click(stopButton);
     });
 

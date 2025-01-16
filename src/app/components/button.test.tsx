@@ -9,7 +9,9 @@ describe("Button Component", () => {
   });
 
   it("should call onClick when button is clicked", async () => {
-    const onClickMock = jest.fn().mockImplementation(async () => await delay(1000));
+    const onClickMock = jest
+      .fn()
+      .mockImplementation(async () => await delay(1000));
     render(<Button onClick={onClickMock}>Click Me</Button>);
 
     const button = screen.getByText("Click Me");
@@ -21,7 +23,9 @@ describe("Button Component", () => {
   });
 
   it("should enable the button after onClick is resolved", async () => {
-    const onClickMock = jest.fn().mockImplementation(async () => await delay(1000));
+    const onClickMock = jest
+      .fn()
+      .mockImplementation(async () => await delay(1000));
     render(<Button onClick={onClickMock}>Click Me</Button>);
 
     const button = screen.getByText("Click Me");

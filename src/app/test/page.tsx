@@ -3,6 +3,8 @@ import { InstancesContextProvider } from "@/app/contexts/instances";
 import { DockerInstance } from "@/app/components/docker";
 import { Card } from "@/app/components/card";
 
+export const dynamic = "force-dynamic";
+
 const RoutePage: React.FC = () => {
   return (
     <InstancesContextProvider>

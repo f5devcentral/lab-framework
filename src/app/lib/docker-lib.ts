@@ -5,19 +5,7 @@ import {
   InstanceDocker,
   InstanceDockerPorts,
 } from "@/app/contexts/instances";
-import { Protocol } from "@/lib/types";
-
-const ContainerState = {
-  Created: "created",
-  Running: "running",
-  Paused: "paused",
-  Restarting: "restarting",
-  Removing: "removing",
-  Exited: "exited",
-  Dead: "dead",
-} as const;
-
-type ContainerState = typeof ContainerState[keyof typeof ContainerState];
+import { InstanceState, Protocol } from "@/lib/types";
 
 /**
  * Creates and starts a Docker container.
@@ -77,7 +65,7 @@ const removeContainer = async (containerId: string): Promise<void> => {
     getInstanceDeploymentName({ name: containerId })
   );
 
-  if (status === ContainerState.Running) {
+  if (status === InstanceState.Running) {
     await container.stop();
   }
   await container.remove();
@@ -105,13 +93,33 @@ const mapPorts = (ports: InstanceDockerPorts[], defaultProtocol: Protocol) =>
  * @param {string} containerId - The ID of the container to inspect.
  * @returns {Promise<ContainerState>} - A promise that resolves with the container's status.
  */
-const getContainerStatus = async (containerId: string): Promise<ContainerState> => {
+const getContainerStatus = async (containerId: string): Promise<InstanceState> => {
   const docker = new Docker();
   const container = docker.getContainer(
     getInstanceDeploymentName({ name: containerId })
   );
-  const data = await container.inspect();
-  return data.State.Status as ContainerState;
+  try {
+    const data = await container.inspect();
+    const retVal = data.State.Status as InstanceState || InstanceState.Unknown;
+    return retVal;
+  } catch (error) {
+    if (isContainerDoesNotExistError(error)) return InstanceState.Unknown;
+    throw error;
+  }
 };
 
-export { createContainer, removeContainer, stopContainer };
+/**
+ * Checks if the given error indicates that a Docker container does not exist.
+ *
+ * @param error - The error to check.
+ * @returns `true` if the error message includes "no such container", otherwise `false`.
+ */
+const isContainerDoesNotExistError = (error: unknown) => error instanceof Error && error.message.includes("no such container")
+
+export {
+  createContainer,
+  removeContainer,
+  stopContainer,
+  getContainerStatus,
+  isContainerDoesNotExistError
+};
