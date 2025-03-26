@@ -1,4 +1,5 @@
 "use server"
+import useLocalStorage from "@/app/lib/use-local-storage";
 /**
  * Utility functions for interacting with environment variables and Redis.
  */
@@ -6,6 +7,7 @@
 import { PETNAME_API_URL } from "./constants";
 import { Petname } from "./types";
 import { fetchLabInfo, fetchUDFInfo } from "./udf";
+import { Instance } from "./types";
 
 /**
  * Returns a normalized component name prefixed with petname
@@ -17,6 +19,13 @@ export async function getComponentName(name: string): Promise<string> {
     const petname = await getPetname();
     if (!petname) throw new Error(`Error getting component name: ${name}`)
     return petname + "-" + name.replace(/[^a-zA-Z0-9 ]/g, "").replace(/ /g, "-").toLowerCase();
+}
+
+export function useInstances(): [Instance[], React.Dispatch<React.SetStateAction<Instance[]>>] {
+    return useLocalStorage<Instance[]>(
+        "instances",
+        []
+    );
 }
 
 /**
@@ -55,9 +64,8 @@ export async function setEnvVariable(key: string, value: string) {
  * @returns {Promise<string>} A random pet name
  */
 export async function getPetname(): Promise<Petname> {
-    const petnameKey = "PETNAME";
-    let petname = await getEnvVariable<Petname>(petnameKey);
-    console.log("petname", petname);
+    const petnameKey = "petname";
+    let petname = await getEnvVariable<Petname>(petnameKey.toUpperCase());
     if (petname) {
         return petname;
     }
@@ -69,7 +77,7 @@ export async function getPetname(): Promise<Petname> {
         }
         const petData = await response.json();
         petname = petData[petnameKey] as string;
-        await setEnvVariable(petnameKey, petname);
+        await setEnvVariable(petnameKey.toUpperCase(), petname);
         return petname;
     } catch (error) {
         console.error("Error fetching pet name:", error);
@@ -95,7 +103,7 @@ export async function getVariable<T>(name: string): Promise<T | null> {
             try {
                 const json = JSON.parse(value);
                 return json as T;
-            } catch (error) { /* not valid JSON */ }
+            } catch { /* not valid JSON */ }
             return value as T;
         }
     }

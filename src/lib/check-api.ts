@@ -1,33 +1,35 @@
 "use server"
-import { ComponentInfo } from "./types";
+import { isInstanceDocker } from "@/app/contexts/instances";
+import { Instance } from "./types";
 import { ensureError } from "./utils";
-import { getVariable, getComponentName } from "./variables";
 
 /**
- * Retrieves the URL for a given component name.
+ * Retrieves the URL for a given component.
  * 
- * This function fetches the petname and component data from Redis,
- * constructs the base URL and port, and returns the full URL.
+ * This function constructs the base URL and port, and returns the full URL.
  * 
- * @param {string} name - The URL or component name to check.
+ * @param {string} component - The component to check.
  * @param {boolean} tls - A True value will use TLS (https) to connect to the component. A False value is no TLS (http).
  * @returns {Promise<string>} - The full URL of the component.
  * @throws {Error} - Throws an error if petname or component data is missing or invalid.
  */
-async function getComponentUrl(name: string, tls: boolean) {
+async function getComponentUrl(component: Instance, tls: boolean) {
   const protocol = tls ? "https" : "http";
-  const componentName = await getComponentName(name);
-  const componentData = await getVariable<ComponentInfo>(`components:${componentName}`);
-  if (!componentData) throw new Error("Component data is missing or invalid");
 
-  const port = componentData?.ports?.host;
-  if (port) return `${protocol}://host.docker.internal:${port}`;
+  if (!component) throw new Error("Component data is missing or invalid");
 
-  return `${protocol}://${componentData?.host}`;
+  if (isInstanceDocker(component) && component.ports && component.ports.length > 0) {
+    return `${protocol}://host.docker.internal:${component.ports[0].hostPort}`;
+  }
+
+  return `${protocol}://${component?.componentId}`;
 }
 
+/**
+ * Options for the checkAPI function.
+ */
 interface CheckAPIOptions {
-  componentName?: string | null;
+  component?: Instance | null;
   url?: string | null;
   path?: string;
   searchString?: string | null;
@@ -45,20 +47,20 @@ interface CheckAPIOptions {
  * check if the API returns the expected status code, contains the specified string in the response body,
  * and contains the specified header with the expected value.
  * 
- * @param {Object} params - The parameters for the function.
- * @param {string} [params.componentName=null] - The name of the component (optional if URL is provided).
- * @param {string} [params.url=null] - The URL to check (optional if componentName is provided).
+ * @param {CheckAPIOptions} params - The parameters for the function.
+ * @param {Instance | null} [params.component=null] - The component instance (optional if URL is provided).
+ * @param {string | null} [params.url=null] - The URL to check (optional if component is provided).
  * @param {string} [params.path="/"] - The path to append to the URL (default is "/").
- * @param {string} [params.searchString=null] - The string to search for in the response body (optional).
- * @param {string} [params.headerName=null] - The name of the header to check (optional).
- * @param {string} [params.headerValue=null] - The expected value of the header (optional).
+ * @param {string | null} [params.searchString=null] - The string to search for in the response body (optional).
+ * @param {string | null} [params.headerName=null] - The name of the header to check (optional).
+ * @param {string | null} [params.headerValue=null] - The expected value of the header (optional).
  * @param {number} [params.targetStatusCode=200] - The expected HTTP status code (default is 200).
  * @param {boolean} [params.tlsComponent=false] - If a component name is specified, use TLS (https) to connect to the component. Default is no TLS (http).
  * @returns {Promise<boolean>} - Returns true if the API returns the expected status code, contains the specified string, and header.
  * @throws {Error} - Throws an error if the API request fails or returns an unexpected status code, response body, or header.
  */
 export async function checkAPI({
-  componentName = null,
+  component = null,
   url = null,
   path = "/",
   searchString = null,
@@ -67,20 +69,20 @@ export async function checkAPI({
   targetStatusCode = 200,
   tlsComponent = false
 }: CheckAPIOptions): Promise<boolean> {
-  if (componentName == null && url == null) {
-    return false;
+  if (component == null && url == null) {
+    throw new Error("You must specify a URL or component to check");
   }
-  if (componentName) {
-    const determinedUrl = await getComponentUrl(componentName, tlsComponent);
+  if (component !== null) {
+    const determinedUrl = await getComponentUrl(component, tlsComponent);
     url = `${determinedUrl}${path}`;
+  } else if (url !== null) {
+    url = `${url}${path}`;
   }
 
   try {
-    if (!url) {
-      throw new Error("URL is null or undefined");
-    }
     console.log(`Calling API Check at: ${url}`)
-    const response = await fetch(url, { mode: "cors", cache: "no-store" });
+    // @ts-expect-error TS2769
+    const response = await fetch(url, { mode: "cors", cache: "no-store" }); // url will never be null here. adding a conditional would cause unreachable code here.
     if (response.status != targetStatusCode) {
       throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
     }

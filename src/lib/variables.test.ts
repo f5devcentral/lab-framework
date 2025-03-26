@@ -98,7 +98,7 @@ describe("variables", () => {
     it("should fetch a petname from the external service if not in environment", async () => {
       delete process.env.PETNAME;
 
-      const mockResponse = { PETNAME: "fetchedpet" };
+      const mockResponse = { petname: "fetchedpet" };
       fetchMock.mockResponseOnce(JSON.stringify(mockResponse));
 
       const result = await getPetname();

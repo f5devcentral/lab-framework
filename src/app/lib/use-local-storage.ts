@@ -1,3 +1,4 @@
+"use client"
 import { useState } from "react";
 
 /**
@@ -18,16 +19,16 @@ const useLocalStorage = <T>(key: string, defaultValue: T): [T, (valueOrFn: T | (
     const [localStorageValue, setLocalStorageValue] = useState(() => {
         try {
             const value = localStorage.getItem(key)
-            // If value is already present in localStorage then return it
-
-            // Else set default value in localStorage and then return it
             if (value) {
+                // If value is already present in localStorage then return it
                 return JSON.parse(value)
             } else {
+                // Else set default value in localStorage and then return it
                 localStorage.setItem(key, JSON.stringify(defaultValue));
                 return defaultValue
             }
-        } catch (error) {
+        } catch {
+            // If an error is caught during reading or parsing of an existing value, set default value in localStorage and then return it
             localStorage.setItem(key, JSON.stringify(defaultValue));
             return defaultValue
         }

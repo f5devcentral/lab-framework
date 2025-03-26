@@ -3,9 +3,41 @@ import {
   InstancesContextProvider,
   useInstancesContext,
 } from "./instances";
+import { getComponentName, useInstances } from "@/lib/variables";
 import { InstanceType } from "@/lib/types";
 
 import { createContainer, removeContainer, isContainerDoesNotExistError } from "@/app/lib/docker-lib";
+
+jest.mock("@/lib/variables", () => ({
+  getComponentName: jest.fn(),
+  useInstances: jest.fn(),
+}));
+
+(getComponentName as jest.Mock).mockImplementation((type: InstanceType) => {
+  switch (type) {
+    case InstanceType.Docker:
+      return "test-docker";
+    case InstanceType.K8s:
+      return "test-k8s";
+    case InstanceType.Udf:
+      return "test-udf";
+    default:
+      return "unknown";
+  }
+});
+
+const mockUseInstances = {
+  instances: ["test-docker", "test-k8s", "test-udf"],
+  addInstance: jest.fn(),
+  removeInstance: jest.fn(),
+  [Symbol.iterator]: function* () {
+    yield this.instances;
+    yield this.addInstance;
+    yield this.removeInstance;
+  },
+};
+
+(useInstances as jest.Mock).mockReturnValue(mockUseInstances);
 
 jest.mock("@/app/lib/docker-lib", () => ({
   createContainer: jest.fn(),
@@ -120,6 +152,7 @@ describe("InstancesContextProvider", () => {
     "should add a %s instance",
     async (instanceType) => {
       const consoleLogMock = jest.spyOn(console, "log").mockImplementation();
+      (getComponentName as jest.Mock).mockResolvedValue(`test-${instanceType.toLowerCase()}`);
 
       render(
         <InstancesContextProvider>

@@ -5,14 +5,14 @@ import { InstanceState, InstanceType } from "@/lib/types";
 import { getContainerStatus } from "@/app/lib/docker-lib";
 import type {
   InstanceDocker,
-  InstanceDockerPorts,
-} from "@/app/contexts/instances";
+  DockerPortMapping
+} from "@/lib/types";
 import { useEffect, useState } from "react";
 
 /**
  * The default ports for a Docker instance.
  */
-const defaultPorts: InstanceDockerPorts[] = [
+const defaultPorts: DockerPortMapping[] = [
   { containerPort: 80, hostPort: 80 },
 ];
 
@@ -26,12 +26,12 @@ export function DockerInstance({
   name,
   description = "",
   image,
-  ports = defaultPorts as InstanceDockerPorts[],
+  ports = defaultPorts as DockerPortMapping[],
 }: {
   name: string;
   description?: string;
   image: string;
-  ports?: InstanceDockerPorts[];
+  ports?: DockerPortMapping[];
 }) {
   const { addInstance, removeInstance } = useInstancesContext();
 

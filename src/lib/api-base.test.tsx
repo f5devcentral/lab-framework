@@ -2,7 +2,9 @@ import { render, fireEvent, waitFor, act } from "@testing-library/react";
 import { APIBase } from "./api-base";
 import { checkAPI } from "@/lib/check-api";
 
-jest.mock("@/lib/check-api");
+jest.mock("@/lib/check-api", () => ({
+  checkAPI: jest.fn(),
+}));
 
 describe("APIBase Component", () => {
   it("should render the button and initial state correctly", () => {
@@ -25,9 +27,7 @@ describe("APIBase Component", () => {
   });
 
   it("should call checkAPI and update state on failed check", async () => {
-    (checkAPI as jest.Mock).mockRejectedValueOnce(
-      new Error("API check failed")
-    );
+    (checkAPI as jest.Mock).mockRejectedValueOnce(new Error("HTTP error 500"));
     const { getByText } = render(<APIBase />);
 
     await act(async () => {
@@ -35,7 +35,9 @@ describe("APIBase Component", () => {
     });
 
     await waitFor(() => {
-      expect(getByText("Error: The API check failed")).toBeInTheDocument();
+      expect(
+        getByText("Error: The API check failed: HTTP error 500", { exact: false })
+      ).toBeInTheDocument();
     });
   });
 

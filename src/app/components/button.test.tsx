@@ -65,8 +65,8 @@ describe("Button Component", () => {
     await act(async () => {
       try {
         await onClickMock();
-      } catch (error) {
-        // handle error
+      } catch {
+        // swallow error
       }
     });
 

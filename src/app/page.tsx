@@ -11,6 +11,7 @@ export default function Home() {
         alt="Lab Framework"
         width={200}
         height={200}
+        style={{ width: "auto" }}
       />
       <p>The following are a list of pages in this lab.</p>
     </main>

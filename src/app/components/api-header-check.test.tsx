@@ -1,16 +1,20 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { APIHeaderCheck } from "./api-header-check";
+
+jest.mock("@/lib/check-api", () => ({
+  checkAPI: jest.fn(),
+}));
 
 describe("APIHeaderCheck Component", () => {
   it("should render the component with the correct structure", () => {
     const { getByText, container } = render(
-      <APIHeaderCheck 
-        componentName="ExampleComponent" 
-        headerName="Server" 
-        headerValue="nginx/1.25.5" 
-        path="/example-path" 
-        targetStatusCode={200} 
-        url="https://api.example.com" 
+      <APIHeaderCheck
+        componentName="ExampleComponent"
+        headerName="Server"
+        headerValue="nginx/1.25.5"
+        path="/example-path"
+        targetStatusCode={200}
+        url="https://api.example.com"
       />
     );
 
@@ -25,15 +29,19 @@ describe("APIHeaderCheck Component", () => {
     expect(getByText("nginx/1.25.5")).toBeInTheDocument();
     expect(getByText("Target Response Status Code:")).toBeInTheDocument();
     expect(getByText("200")).toBeInTheDocument();
-    expect(container.querySelector(".flex.flex-col.border.border-gray-300.p-4.rounded.max-w-md")).toBeInTheDocument();
+    expect(
+      container.querySelector(
+        ".flex.flex-col.border.border-gray-300.p-4.rounded.max-w-md"
+      )
+    ).toBeInTheDocument();
   });
 
   it("should render the component without URL and component name", () => {
     const { getByText, queryByText } = render(
-      <APIHeaderCheck 
-        headerName="Server" 
-        headerValue="nginx/1.25.5" 
-        targetStatusCode={200} 
+      <APIHeaderCheck
+        headerName="Server"
+        headerValue="nginx/1.25.5"
+        targetStatusCode={200}
       />
     );
 
@@ -46,5 +54,17 @@ describe("APIHeaderCheck Component", () => {
     expect(getByText("nginx/1.25.5")).toBeInTheDocument();
     expect(getByText("Target Response Status Code:")).toBeInTheDocument();
     expect(getByText("200")).toBeInTheDocument();
+  });
+
+  it("should render APIBase component", () => {
+    render(
+      <APIHeaderCheck
+        headerName="Server"
+        headerValue="nginx/1.25.5"
+        targetStatusCode={200}
+      />
+    );
+
+    expect(screen.getByRole("button")).toHaveTextContent("Check");
   });
 });

@@ -1,6 +1,9 @@
 "use client";
 import { checkAPI } from "@/lib/check-api";
 import { useState } from "react";
+import { ensureError } from "./utils";
+import { useInstances } from "./variables";
+import { Instance } from "./types";
 
 /**
  * APIBase component
@@ -44,6 +47,13 @@ export function APIBase({
     error: string | null;
   }>({ status: null, error: null });
 
+  const [instances] = useInstances();
+
+  function getComponentData<T>(name: string): Promise<T | null> {
+    const instance = instances.find((i) => i.name === name);
+    return Promise.resolve(instance ? (instance as unknown as T) : null);
+  }
+
   /**
    * Handles the API check and updates the state accordingly
    *
@@ -53,7 +63,9 @@ export function APIBase({
   const handleCheck = async () => {
     try {
       await checkAPI({
-        componentName,
+        component: componentName
+          ? await getComponentData<Instance>(componentName)
+          : null,
         headerName,
         headerValue,
         searchString,
@@ -64,7 +76,8 @@ export function APIBase({
       });
       setState({ status: true, error: null });
     } catch (error) {
-      const errorMessage = "The API check failed";
+      const err = ensureError(error);
+      const errorMessage = `The API check failed: ${err.message}`;
       setState({ status: false, error: errorMessage });
     }
   };

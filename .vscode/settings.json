@@ -3,7 +3,9 @@
     "eslint.enable": true,
     "eslint.validate": [
         "javascript",
-        "html"
+        "html",
+        "typescriptreact",
+        "javascriptreact"
     ],
     "cSpell.words": [
         "devcontainer",
@@ -19,5 +21,6 @@
         "jsonconfig.json"
     ],
     "typescript.validate.enable": true,
-    // "jest.runMode": "on-demand",
+    "eslint.useFlatConfig": true,
+    "jest.runMode": "on-demand",
 }

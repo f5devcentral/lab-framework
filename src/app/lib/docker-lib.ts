@@ -3,8 +3,8 @@ import Docker from "dockerode";
 import { getInstanceDeploymentName } from "./utils";
 import {
   InstanceDocker,
-  InstanceDockerPorts,
-} from "@/app/contexts/instances";
+  DockerPortMapping
+} from "@/lib/types";
 import { InstanceState, Protocol } from "@/lib/types";
 
 /**
@@ -71,7 +71,7 @@ const removeContainer = async (containerId: string): Promise<void> => {
   await container.remove();
 };
 
-const mapPorts = (ports: InstanceDockerPorts[], defaultProtocol: Protocol) =>
+const mapPorts = (ports: DockerPortMapping[], defaultProtocol: Protocol) =>
   ports?.reduce(
     (
       acc: { [key: string]: { HostPort: string }[] },
