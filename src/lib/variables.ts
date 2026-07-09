@@ -1,5 +1,5 @@
 "use server"
-import useLocalStorage from "@/app/lib/use-local-storage";
+
 /**
  * Utility functions for interacting with environment variables and Redis.
  */
@@ -7,7 +7,6 @@ import useLocalStorage from "@/app/lib/use-local-storage";
 import { PETNAME_API_URL } from "./constants";
 import { Petname } from "./types";
 import { fetchLabInfo, fetchUDFInfo } from "./udf";
-import { Instance } from "./types";
 
 /**
  * Returns a normalized component name prefixed with petname
@@ -21,12 +20,7 @@ export async function getComponentName(name: string): Promise<string> {
     return petname + "-" + name.replace(/[^a-zA-Z0-9 ]/g, "").replace(/ /g, "-").toLowerCase();
 }
 
-export function useInstances(): [Instance[], React.Dispatch<React.SetStateAction<Instance[]>>] {
-    return useLocalStorage<Instance[]>(
-        "instances",
-        []
-    );
-}
+
 
 /**
  * Retrieves an environment variable by name.

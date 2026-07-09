@@ -2,7 +2,7 @@
 import { checkAPI } from "@/lib/check-api";
 import { useState } from "react";
 import { ensureError } from "./utils";
-import { useInstances } from "./variables";
+import { useInstances } from "./client-variables";
 import { Instance } from "./types";
 
 /**

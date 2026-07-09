@@ -14,7 +14,8 @@ import {
   InstanceUdf,
   Protocol,
 } from "@/lib/types";
-import { getComponentName, useInstances } from "@/lib/variables";
+import { getComponentName } from "@/lib/variables";
+import { useInstances } from "@/lib/client-variables";
 
 /**
  * Type guard to check if an instance is of type Docker.
@@ -100,7 +101,7 @@ const InstancesContextProvider = ({
     instance.componentId = await getComponentName(instance.name);
 
     if (isInstanceDocker(instance)) {
-      try {
+      try { 
         console.log("Creating docker instance");
         await createContainer({
           image: instance.image,
@@ -118,6 +119,7 @@ const InstancesContextProvider = ({
       console.log("Creating udf instance");
     }
     setInstances((prevInstances) => [...prevInstances, instance]);
+    console.log("Instances: ", instances);
   };
 
   /**
