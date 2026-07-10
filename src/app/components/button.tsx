@@ -1,6 +1,6 @@
 "use client";
 import { mergeClasses } from "@/app/lib/utils";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const buttonStyles =
   "px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed";
@@ -44,13 +44,8 @@ export function Button({
   children,
   disabled = false,
 }: ButtonProps) {
-  const [isDisabled, setIsDisabled] = useState<boolean>(disabled);
   const [internalDisabled, setInternalDisabled] = useState<boolean>(disabled);
   const [allowExternalDisabling, setAllowExternalDisabling] = useState<boolean>(true);
-
-  useEffect(() => {
-    setIsDisabled(disabled);
-  }, [disabled]);
 
   return (
     <button
@@ -68,7 +63,7 @@ export function Button({
         setInternalDisabled(false);
         setAllowExternalDisabling(true);
       }}
-      disabled={allowExternalDisabling ? isDisabled : internalDisabled}
+      disabled={allowExternalDisabling ? disabled : internalDisabled}
     >
       {children}
     </button>

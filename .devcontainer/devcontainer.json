@@ -15,8 +15,14 @@
 	"workspaceFolder": "/workspace",
 	"shutdownAction": "stopCompose",
 	// Features to add to the dev container. More info: https://containers.dev/features.
+	// Keep these options pinned for SSL-inspected/corporate networks:
+	// - "moby": false avoids unsupported Moby install path on Debian trixie.
+	// - "dockerDashComposeVersion": "none" avoids GitHub "latest" lookup during build.
 	"features": {
-		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+			"moby": false,
+			"dockerDashComposeVersion": "none"
+		}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [

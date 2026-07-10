@@ -2,7 +2,6 @@
 import { createContext, useContext, ReactNode } from "react";
 import {
   createContainer,
-  isContainerDoesNotExistError,
   removeContainer,
 } from "@/app/lib/docker-lib";
 import {
@@ -16,6 +15,9 @@ import {
 } from "@/lib/types";
 import { getComponentName } from "@/lib/variables";
 import { useInstances } from "@/lib/client-variables";
+
+const isContainerDoesNotExistError = (error: unknown) =>
+  error instanceof Error && error.message.includes("no such container");
 
 /**
  * Type guard to check if an instance is of type Docker.

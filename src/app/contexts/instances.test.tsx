@@ -1,4 +1,5 @@
 import { render, screen, act, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { InstancesContextProvider, useInstancesContext } from "./instances";
 import { getComponentName } from "@/lib/variables";
 import {
@@ -11,7 +12,6 @@ import {
 import {
   createContainer,
   removeContainer,
-  isContainerDoesNotExistError,
 } from "@/app/lib/docker-lib";
 
 jest.mock("@/lib/variables", () => ({
@@ -39,8 +39,16 @@ import { useInstances as mockUseInstances } from "@/lib/client-variables";
 jest.mock("@/app/lib/docker-lib", () => ({
   createContainer: jest.fn(),
   removeContainer: jest.fn(),
-  isContainerDoesNotExistError: jest.fn(),
 }));
+
+const mockUseInstancesState = (
+  initial: (InstanceDocker | InstanceK8s | InstanceUdf)[]
+) => {
+  (mockUseInstances as jest.Mock).mockImplementation(() => {
+    // Use React state in the mock so provider updates trigger rerenders in tests.
+    return useState(initial);
+  });
+};
 
 describe("InstanceType Enum", () => {
   it("should have a Docker type", () => {
@@ -148,35 +156,7 @@ describe("InstancesContextProvider", () => {
   test.each(["Docker", "K8s", "Udf"])(
     "should add a %s instance",
     async (instanceType) => {
-      // jest.clearAllMocks();
-      // jest.resetAllMocks();
-      // jest.resetModules();
-
-      (mockUseInstances as jest.Mock).mockImplementation(() => {
-        const state = {
-          instances: [
-            // { name: "test-docker", type: 0 } as InstanceDocker,
-            // { name: "test-udf", type: 1 } as InstanceUdf,
-            // { name: "test-k8s", type: 2 } as InstanceK8s,
-          ] as (InstanceDocker | InstanceK8s | InstanceUdf)[],
-        };
-        return {
-          get instances() {
-            return state.instances;
-          },
-          addInstance: jest.fn((instances) => {
-            state.instances = instances;
-          }),
-          removeInstance: jest.fn((instances) => {
-            state.instances = instances;
-          }),
-          [Symbol.iterator]: function* () {
-            yield this.instances;
-            yield this.addInstance;
-            yield this.removeInstance;
-          },
-        };
-      });
+      mockUseInstancesState([]);
 
       const consoleLogMock = jest.spyOn(console, "log").mockImplementation();
       (getComponentName as jest.Mock).mockResolvedValue(
@@ -194,7 +174,6 @@ describe("InstancesContextProvider", () => {
 
       await act(async () => {
         addButton.click();
-        jest.advanceTimersByTime(2000);
       });
 
       await waitFor(() => {
@@ -218,22 +197,11 @@ describe("InstancesContextProvider", () => {
   it("should log an error if an instance with a specific name already exists", async () => {
     const consoleErrorMock = jest.spyOn(console, "error").mockImplementation();
 
-    (mockUseInstances as jest.Mock).mockImplementation(() => {
-      return {
-        instances: [
-          { name: "test-docker", type: 0 } as InstanceDocker,
-          { name: "test-udf", type: 1 } as InstanceUdf,
-          { name: "test-k8s", type: 2 } as InstanceK8s,
-        ],
-        addInstance: jest.fn(),
-        removeInstance: jest.fn(),
-        [Symbol.iterator]: function* () {
-          yield this.instances;
-          yield this.addInstance;
-          yield this.removeInstance;
-        },
-      };
-    });
+    mockUseInstancesState([
+      { name: "test-docker", type: 0 } as InstanceDocker,
+      { name: "test-udf", type: 1 } as InstanceUdf,
+      { name: "test-k8s", type: 2 } as InstanceK8s,
+    ]);
 
     render(
       <InstancesContextProvider>
@@ -267,18 +235,7 @@ describe("InstancesContextProvider", () => {
   it("should log an error if an error is thrown when adding an instance", async () => {
     const consoleErrorMock = jest.spyOn(console, "error").mockImplementation();
 
-    (mockUseInstances as jest.Mock).mockImplementation(() => {
-      return {
-        instances: [] as (InstanceDocker | InstanceK8s | InstanceUdf)[],
-        addInstance: jest.fn(),
-        removeInstance: jest.fn(),
-        [Symbol.iterator]: function* () {
-          yield this.instances;
-          yield this.addInstance;
-          yield this.removeInstance;
-        },
-      };
-    });
+    mockUseInstancesState([]);
 
     (createContainer as jest.Mock).mockRejectedValueOnce(
       new Error("Test Error")
@@ -309,22 +266,11 @@ describe("InstancesContextProvider", () => {
     async (instanceType) => {
       const consoleLogMock = jest.spyOn(console, "log").mockImplementation();
 
-      (mockUseInstances as jest.Mock).mockImplementation(() => {
-        return {
-          instances: [
-            { name: "test-docker", type: 0 } as InstanceDocker,
-            { name: "test-udf", type: 1 } as InstanceUdf,
-            { name: "test-k8s", type: 2 } as InstanceK8s,
-          ],
-          addInstance: jest.fn(),
-          removeInstance: jest.fn(),
-          [Symbol.iterator]: function* () {
-            yield this.instances;
-            yield this.addInstance;
-            yield this.removeInstance;
-          },
-        };
-      });
+      mockUseInstancesState([
+        { name: "test-docker", type: 0 } as InstanceDocker,
+        { name: "test-udf", type: 1 } as InstanceUdf,
+        { name: "test-k8s", type: 2 } as InstanceK8s,
+      ]);
 
       render(
         <InstancesContextProvider>
@@ -354,26 +300,14 @@ describe("InstancesContextProvider", () => {
   );
 
   it("should log an error if an error is thrown when removing an instance", async () => {
-    (mockUseInstances as jest.Mock).mockImplementation(() => {
-      return {
-        instances: [
-          { name: "test-docker", type: 0 } as InstanceDocker,
-          { name: "test-udf", type: 1 } as InstanceUdf,
-          { name: "test-k8s", type: 2 } as InstanceK8s,
-        ],
-        addInstance: jest.fn(),
-        removeInstance: jest.fn(),
-        [Symbol.iterator]: function* () {
-          yield this.instances;
-          yield this.addInstance;
-          yield this.removeInstance;
-        },
-      };
-    });
+    mockUseInstancesState([
+      { name: "test-docker", type: 0 } as InstanceDocker,
+      { name: "test-udf", type: 1 } as InstanceUdf,
+      { name: "test-k8s", type: 2 } as InstanceK8s,
+    ]);
 
     const consoleErrorMock = jest.spyOn(console, "error").mockImplementation();
     const consoleLogMock = jest.spyOn(console, "log").mockImplementation();
-    (isContainerDoesNotExistError as jest.Mock).mockReturnValueOnce(true);
     (removeContainer as jest.Mock).mockRejectedValueOnce(
       new Error("no such container")
     );

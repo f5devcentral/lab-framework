@@ -114,12 +114,12 @@ const getContainerStatus = async (containerId: string): Promise<InstanceState> =
  * @param error - The error to check.
  * @returns `true` if the error message includes "no such container", otherwise `false`.
  */
-const isContainerDoesNotExistError = (error: unknown) => error instanceof Error && error.message.includes("no such container")
+const isContainerDoesNotExistError = (error: unknown) =>
+  error instanceof Error && error.message.includes("no such container");
 
 export {
   createContainer,
   removeContainer,
   stopContainer,
-  getContainerStatus,
-  isContainerDoesNotExistError
+  getContainerStatus
 };
