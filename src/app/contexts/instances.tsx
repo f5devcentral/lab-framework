@@ -1,98 +1,23 @@
-"use client"
+"use client";
 import { createContext, useContext, ReactNode } from "react";
 import {
   createContainer,
-  isContainerDoesNotExistError,
   removeContainer,
 } from "@/app/lib/docker-lib";
-import { InstanceState, InstanceType, Protocol } from "@/lib/types";
-import useLocalStorage from "@/app/lib/use-local-storage";
+import {
+  DockerPortMapping,
+  Instance,
+  InstanceDocker,
+  InstanceK8s,
+  InstanceType,
+  InstanceUdf,
+  Protocol,
+} from "@/lib/types";
+import { getComponentName } from "@/lib/variables";
+import { useInstances } from "@/lib/client-variables";
 
-/**
- * Base interface for an instance.
- * @property {string} name - The name of the instance.
- * @property {InstanceState} [status] - The status of the instance.
- */
-interface InstanceBase {
-  name: string;
-  status?: InstanceState;
-}
-
-/**
- * Interface for Docker environment variables.
- * @property {string} name - The name of the environment variable.
- * @property {string} [value] - The value of the environment variable.
- * @property {boolean} [isVariable] - Whether it is a variable.
- * @property {boolean} [isSecret] - Whether it is a secret.
- */
-interface InstanceDockerEnv {
-  name: string;
-  value?: string;
-  isVariable?: boolean;
-  isSecret?: boolean;
-}
-
-/**
- * Interface for Docker ports.
- * @property {number} containerPort - The port inside the container.
- * @property {number} [hostPort] - The port on the host machine.
- * @property {Protocol} [protocol] - The protocol used (TCP/UDP).
- */
-interface InstanceDockerPorts {
-  containerPort: number;
-  hostPort?: number;
-  protocol?: Protocol;
-}
-
-/**
- * Interface for Docker instances.
- * @extends InstanceBase
- * @property {InstanceType.Docker} type - The type of the instance.
- * @property {string} name - The name of the instance.
- * @property {string} [description] - The description of the instance.
- * @property {string} image - The Docker image used.
- * @property {InstanceDockerPorts[]} [ports] - The ports used by the instance.
- * @property {InstanceDockerEnv[]} [env] - The environment variables used by the instance.
- */
-interface InstanceDocker extends InstanceBase {
-  type: InstanceType.Docker;
-  name: string;
-  description?: string;
-  image: string;
-  ports?: InstanceDockerPorts[];
-  env?: InstanceDockerEnv[];
-}
-
-/**
- * Interface for Kubernetes instances.
- * @extends InstanceBase
- * @property {InstanceType.K8s} type - The type of the instance.
- * @property {string} name - The name of the instance.
- * @property {string} url - The URL of the Kubernetes cluster.
- * @property {string} kubeconfig - The kubeconfig file content.
- */
-interface InstanceK8s extends InstanceBase {
-  type: InstanceType.K8s;
-  name: string;
-  url: string;
-  kubeconfig: string;
-}
-
-/**
- * Interface for UDF instances.
- * @extends InstanceBase
- * @property {InstanceType.Udf} type - The type of the instance.
- * @property {string} name - The name of the instance.
- */
-interface InstanceUdf extends InstanceBase {
-  type: InstanceType.Udf;
-  name: string;
-}
-
-/**
- * Type representing any instance.
- */
-type Instance = InstanceDocker | InstanceK8s | InstanceUdf;
+const isContainerDoesNotExistError = (error: unknown) =>
+  error instanceof Error && error.message.includes("no such container");
 
 /**
  * Type guard to check if an instance is of type Docker.
@@ -161,10 +86,7 @@ const InstancesContext = createContext<InstancesContextType | undefined>(
 const InstancesContextProvider = ({
   children,
 }: InstancesContextProviderProps) => {
-  const [instances, setInstances] = useLocalStorage<Instance[]>(
-    "instances",
-    []
-  );
+  const [instances, setInstances] = useInstances();
 
   /**
    * Function to add an instance.
@@ -178,9 +100,10 @@ const InstancesContextProvider = ({
       console.error("Instance already exists");
       return;
     }
+    instance.componentId = await getComponentName(instance.name);
 
     if (isInstanceDocker(instance)) {
-      try {
+      try { 
         console.log("Creating docker instance");
         await createContainer({
           image: instance.image,
@@ -198,6 +121,7 @@ const InstancesContextProvider = ({
       console.log("Creating udf instance");
     }
     setInstances((prevInstances) => [...prevInstances, instance]);
+    console.log("Instances: ", instances);
   };
 
   /**
@@ -271,14 +195,16 @@ export {
   useInstancesContext,
   InstanceType,
   Protocol,
+  isInstanceDocker,
+  isInstanceK8s,
+  isInstanceUdf,
 };
 
 export type {
   InstancesContextType,
   Instance,
   InstanceDocker,
-  InstanceDockerEnv,
-  InstanceDockerPorts,
+  DockerPortMapping as DockerPortMapping,
   InstanceK8s,
   InstanceUdf,
 };

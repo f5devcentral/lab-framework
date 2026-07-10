@@ -1,9 +1,8 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { APIResponseCheck } from "./api-response-check";
-import { APIBase } from "@/lib/api-base";
 
-jest.mock("@/lib/api-base", () => ({
-  APIBase: jest.fn(() => <div>Mocked APIBase</div>),
+jest.mock("@/lib/check-api", () => ({
+  checkAPI: jest.fn(),
 }));
 
 describe("APIResponseCheck Component", () => {
@@ -32,29 +31,18 @@ describe("APIResponseCheck Component", () => {
     expect(container.querySelector(".flex.flex-col.border.border-gray-300.p-4.rounded.max-w-md")).toBeInTheDocument();
   });
 
-  it("should render the APIBase component with the correct props", () => {
+  it("should render APIBase component", () => {
     render(
       <APIResponseCheck
         componentName="ExampleComponent"
         path="/example-path"
-        searchString="exampleSearchString"
         targetStatusCode={200}
         url="https://api.example.com"
         tlsComponent={true}
       />
     );
 
-    expect(APIBase).toHaveBeenCalledWith(
-      {
-        componentName: "ExampleComponent",
-        path: "/example-path",
-        searchString: "exampleSearchString",
-        targetStatusCode: 200,
-        url: "https://api.example.com",
-        tlsComponent: true,
-      },
-      {}
-    );
+    expect(screen.getByRole("button")).toHaveTextContent("Check");
   });
 
   it("should render without URL and componentName", () => {

@@ -1,8 +1,9 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { APICheck } from "./api-check";
-import { APIBase } from "@/lib/api-base";
 
-jest.mock("@/lib/api-base");
+jest.mock("@/lib/check-api", () => ({
+  checkAPI: jest.fn(),
+}));
 
 describe("APICheck Component", () => {
   it("should render with default props", () => {
@@ -41,7 +42,7 @@ describe("APICheck Component", () => {
     expect(getByText("404")).toBeInTheDocument();
   });
 
-  it("should render APIBase component with correct props", () => {
+  it("should render APIBase component", () => {
     render(
       <APICheck
         componentName="ExampleComponent"
@@ -52,15 +53,6 @@ describe("APICheck Component", () => {
       />
     );
 
-    expect(APIBase).toHaveBeenCalledWith(
-      {
-        componentName: "ExampleComponent",
-        path: "/example-path",
-        targetStatusCode: 200,
-        url: "https://api.example.com",
-        tlsComponent: true,
-      },
-      {}
-    );
+    expect(screen.getByRole("button")).toHaveTextContent("Check");
   });
 });

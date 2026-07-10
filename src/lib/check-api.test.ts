@@ -1,3 +1,4 @@
+import { Instance } from "./types";
 import { checkAPI } from "./check-api";
 import { getComponentName, getVariable } from "./variables";
 import fetchMock from "jest-fetch-mock";
@@ -7,15 +8,17 @@ jest.mock("./variables", () => ({
   getVariable: jest.fn(),
 }));
 
+jest.mock("@/app/contexts/instances", () => ({
+  isInstanceDocker: jest.fn().mockReturnValue(true),
+}));
+
 describe("checkAPI", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
     fetchMock.resetMocks();
   });
 
   it("should return false if both componentName and url are null", async () => {
-    const result = await checkAPI({});
-    expect(result).toBe(false);
+    await expect(checkAPI({ url: undefined, component: null })).rejects.toThrow("You must specify a URL or component to check");
   });
 
   it("should construct the URL from componentName and call the API", async () => {
@@ -23,13 +26,21 @@ describe("checkAPI", () => {
     (getVariable as jest.Mock).mockResolvedValue({ host: "localhost", ports: { host: 3000 } });
     fetchMock.mockResponseOnce("", { status: 200 });
 
-    const result = await checkAPI({ componentName: "test-component" });
+    const result = await checkAPI(
+      {
+        component:
+          {
+            name: "test-component",
+            ports: [
+              { containerPort: 3030, hostPort: 3000, protocol: "tcp" }]
+          } as Instance
+      });
     expect(result).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith("http://host.docker.internal:3000/", { mode: "cors", cache: "no-store" });
   });
 
-  it("should throw an error if the url is null and component name is invalid", async () => {
-    await expect(checkAPI({ url: null, componentName: "" })).rejects.toThrow("URL is null or undefined");
+  it("should throw an error if the url and component are null", async () => {
+    await expect(checkAPI({ url: null, component: null })).rejects.toThrow("You must specify a URL or component to check");
   });
 
   it("should throw an error if the API request fails", async () => {
@@ -66,5 +77,37 @@ describe("checkAPI", () => {
       headerValue: "expected value",
     });
     expect(result).toBe(true);
+  });
+
+  it("should use TLS if tlsComponent is true", async () => {
+    (getComponentName as jest.Mock).mockResolvedValue("test-component");
+    (getVariable as jest.Mock).mockResolvedValue({ host: "localhost", ports: { host: 3000 } });
+    fetchMock.mockResponseOnce("", { status: 200 });
+
+    const result = await checkAPI({
+      component: {
+        name: "test-component",
+        ports: [{ containerPort: 3030, hostPort: 3000, protocol: "tcp" }]
+      } as Instance,
+      tlsComponent: true
+    });
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith("https://host.docker.internal:3000/", { mode: "cors", cache: "no-store" });
+  });
+
+  it("should append the path to the URL", async () => {
+    (getComponentName as jest.Mock).mockResolvedValue("test-component");
+    (getVariable as jest.Mock).mockResolvedValue({ host: "localhost", ports: { host: 3000 } });
+    fetchMock.mockResponseOnce("", { status: 200 });
+
+    const result = await checkAPI({
+      component: {
+        name: "test-component",
+        ports: [{ containerPort: 3030, hostPort: 3000, protocol: "tcp" }]
+      } as Instance,
+      path: "/api/test"
+    });
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith("http://host.docker.internal:3000/api/test", { mode: "cors", cache: "no-store" });
   });
 });

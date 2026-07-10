@@ -37,7 +37,8 @@ export function ToC() {
         level: parseInt(heading.tagName.substring(1)), // Get the heading level
       };
     });
-    setHeadings(headings);
+    // Defer state update to avoid synchronous setState in effect.
+    queueMicrotask(() => setHeadings(headings));
 
     const observer = new IntersectionObserver(
       (entries) => {

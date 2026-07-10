@@ -3,8 +3,8 @@ import Docker from "dockerode";
 import { getInstanceDeploymentName } from "./utils";
 import {
   InstanceDocker,
-  InstanceDockerPorts,
-} from "@/app/contexts/instances";
+  DockerPortMapping
+} from "@/lib/types";
 import { InstanceState, Protocol } from "@/lib/types";
 
 /**
@@ -71,7 +71,7 @@ const removeContainer = async (containerId: string): Promise<void> => {
   await container.remove();
 };
 
-const mapPorts = (ports: InstanceDockerPorts[], defaultProtocol: Protocol) =>
+const mapPorts = (ports: DockerPortMapping[], defaultProtocol: Protocol) =>
   ports?.reduce(
     (
       acc: { [key: string]: { HostPort: string }[] },
@@ -114,12 +114,12 @@ const getContainerStatus = async (containerId: string): Promise<InstanceState> =
  * @param error - The error to check.
  * @returns `true` if the error message includes "no such container", otherwise `false`.
  */
-const isContainerDoesNotExistError = (error: unknown) => error instanceof Error && error.message.includes("no such container")
+const isContainerDoesNotExistError = (error: unknown) =>
+  error instanceof Error && error.message.includes("no such container");
 
 export {
   createContainer,
   removeContainer,
   stopContainer,
-  getContainerStatus,
-  isContainerDoesNotExistError
+  getContainerStatus
 };

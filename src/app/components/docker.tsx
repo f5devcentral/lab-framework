@@ -3,18 +3,13 @@ import { Button } from "@/app/components/button";
 import { useInstancesContext } from "@/app/contexts/instances";
 import { InstanceState, InstanceType } from "@/lib/types";
 import { getContainerStatus } from "@/app/lib/docker-lib";
-import type {
-  InstanceDocker,
-  InstanceDockerPorts,
-} from "@/app/contexts/instances";
+import type { InstanceDocker, DockerPortMapping } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 /**
  * The default ports for a Docker instance.
  */
-const defaultPorts: InstanceDockerPorts[] = [
-  { containerPort: 80, hostPort: 80 },
-];
+const defaultPorts: DockerPortMapping[] = [{ containerPort: 80, hostPort: 80 }];
 
 /**
  * A component that represents a Docker instance.
@@ -26,14 +21,14 @@ export function DockerInstance({
   name,
   description = "",
   image,
-  ports = defaultPorts as InstanceDockerPorts[],
+  ports = defaultPorts as DockerPortMapping[],
 }: {
   name: string;
   description?: string;
   image: string;
-  ports?: InstanceDockerPorts[];
+  ports?: DockerPortMapping[];
 }) {
-  const { addInstance, removeInstance } = useInstancesContext();
+  const { instances, addInstance, removeInstance } = useInstancesContext();
 
   const [state, setState] = useState<InstanceState>(InstanceState.Unknown);
 
@@ -79,7 +74,9 @@ export function DockerInstance({
             } as InstanceDocker);
           }}
           disabled={
-            state === InstanceState.Creating || state === InstanceState.Running || state === InstanceState.Removing
+            state === InstanceState.Creating ||
+            state === InstanceState.Running ||
+            state === InstanceState.Removing
           }
           className="bg-blue-500"
         >
@@ -100,6 +97,7 @@ export function DockerInstance({
           Stop
         </Button>
       </div>
+      <div data-testid="instances">{JSON.stringify(instances)}</div>
     </>
   );
 }

@@ -2,6 +2,7 @@ import { render, fireEvent, screen, act } from "@testing-library/react";
 import { InstancesContextType } from "../contexts/instances";
 
 import { getContainerStatus } from "@/app/lib/docker-lib";
+import { useInstancesContext } from "@/app/contexts/instances";
 
 jest.mock("@/app/lib/docker-lib", () => ({
   createContainer: jest.fn(),
@@ -10,7 +11,6 @@ jest.mock("@/app/lib/docker-lib", () => ({
   getContainerStatus: jest.fn().mockResolvedValue("unknown"),
 }));
 
-const mockUseInstancesContext = jest.fn();
 const mockAddInstance = jest.fn();
 const mockRemoveInstance = jest.fn();
 
@@ -21,19 +21,17 @@ const providerProps: InstancesContextType = {
 };
 
 jest.mock("@/app/contexts/instances", () => ({
-  useInstancesContext: jest.fn().mockReturnValue(providerProps),
+  useInstancesContext: jest.fn(),
 }));
-
-mockUseInstancesContext.mockReturnValue({
-  addInstance: mockAddInstance,
-  removeInstance: mockRemoveInstance,
-  instances: [],
-});
 
 import { DockerInstance } from "./docker";
 import React from "react";
 
 describe("DockerInstance Component", () => {
+  beforeEach(() => {
+    (useInstancesContext as jest.Mock).mockReturnValue(providerProps);
+  });
+
   it("should render DockerInstance with default props", () => {
     const { getByText } = render(
       <DockerInstance name="Test Docker" image="test-image" />

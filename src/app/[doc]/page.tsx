@@ -6,7 +6,8 @@ interface PageParams {
   doc: string;
 }
 
-export default async function Page({ params }: { params: PageParams }) {
+export default async function Page(props: { params: Promise<PageParams> }) {
+  const params = await props.params;
   if (await getEnvVariable("SIMULATE_LOAD_DELAY")) await delay(5000);
   const { content, frontmatter } = { content: "content", frontmatter: { title: params.doc, description: "description" } }
   // const { content, frontmatter } = await getMdxContent(params.doc)

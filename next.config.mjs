@@ -3,10 +3,7 @@ const nextConfig = {
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
   reactStrictMode: true,
   output: "standalone",
-  experimental: {
-    serverComponentsExternalPackages: ["dockerode"],
-  },
-  
+  serverExternalPackages: ["dockerode"],
 };
 
 export default nextConfig;

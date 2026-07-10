@@ -1,5 +1,4 @@
 import { act } from "@testing-library/react";
-// import Docker from "dockerode";
 import {
   createContainer,
   removeContainer,
@@ -7,7 +6,7 @@ import {
   getContainerStatus
 } from "@/app/lib/docker-lib";
 import { getInstanceDeploymentName } from "@/app/lib/utils";
-import { InstanceDockerPorts } from "../contexts/instances";
+import { DockerPortMapping } from "@/lib/types";
 import { Protocol } from "@/lib/types";
 
 jest.mock("@/app/lib/utils");
@@ -66,7 +65,7 @@ describe("Docker Library", () => {
         ports: [
           { containerPort: 81, hostPort: 8081 },
           { containerPort: 82, hostPort: 8082, protocol: Protocol.Udp },
-        ] as InstanceDockerPorts[],
+        ] as DockerPortMapping[],
       });
 
       expect(mockDockerode.createContainer).toHaveBeenCalledWith({
