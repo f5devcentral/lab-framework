@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { APICheck } from "./api-check";
+import { checkAPI } from "@/lib/check-api";
 
 jest.mock("@/lib/check-api", () => ({
   checkAPI: jest.fn(),
@@ -54,5 +55,27 @@ describe("APICheck Component", () => {
     );
 
     expect(screen.getByRole("button")).toHaveTextContent("Check");
+  });
+
+  it("should treat serialized '{true}' tlsComponent value as TLS enabled", async () => {
+    (checkAPI as jest.Mock).mockResolvedValueOnce(true);
+
+    render(
+      <APICheck
+        componentName="ExampleComponent"
+        url="http://localhost"
+        tlsComponent={"{true}"}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check" }));
+
+    await waitFor(() => {
+      expect(checkAPI).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tlsComponent: true,
+        })
+      );
+    });
   });
 });

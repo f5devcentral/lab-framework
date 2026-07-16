@@ -5,25 +5,34 @@ import {
   fetchUdfComponentWebShell,
 } from "@/lib/udf";
 
-import fetchMock from "jest-fetch-mock";
+import {
+  fetchLabInfoServer,
+  fetchUDFInfoServer,
+  fetchUdfComponentWebShellServer,
+} from "@/lib/udf-action";
+
+jest.mock("@/lib/udf-action", () => ({
+  fetchLabInfoServer: jest.fn(),
+  fetchUDFInfoServer: jest.fn(),
+  fetchUdfComponentWebShellServer: jest.fn(),
+}));
 
 describe("udf", () => {
 
   beforeEach(() => {
-    fetchMock.resetMocks();
+    jest.clearAllMocks();
   });
 
   describe("fetchLabInfo", () => {
     it("should fetch and return the lab info", async () => {
-      const mockResponse = { key: "value" };
-      fetchMock.mockResponseOnce(JSON.stringify(mockResponse));
+      (fetchLabInfoServer as jest.Mock).mockResolvedValue("value");
 
       const result = await fetchLabInfo("key");
       expect(result).toBe("value");
     });
 
     it("should return null on bad http fetch response", async () => {
-      fetchMock.mockRejectOnce(new Error("HTTP error message"));
+      (fetchLabInfoServer as jest.Mock).mockResolvedValue(null);
 
       const result = await fetchLabInfo("key");
       expect(result).toBeNull();
@@ -33,18 +42,14 @@ describe("udf", () => {
   describe("fetchUDFInfo", () => {
 
     it("should fetch and return the UDF info", async () => {
-      const mockResponse = { key: "value" };
-      fetchMock.mockResponseOnce(JSON.stringify(mockResponse));
+      (fetchUDFInfoServer as jest.Mock).mockResolvedValue("value");
 
       const result = await fetchUDFInfo("key");
       expect(result).toBe("value");
     });
 
     it("should return null on bad http fetch response", async () => {
-      fetchMock.mockResponseOnce("{}", {
-        status: 500,
-        headers: { "content-type": "application/json" },
-      });
+      (fetchUDFInfoServer as jest.Mock).mockResolvedValue(null);
 
       const result = await fetchUDFInfo("key");
       expect(result).toBeNull();
@@ -53,57 +58,29 @@ describe("udf", () => {
 
   describe("fetchUdfComponentWebShell", () => {
     it("should fetch and return the Web Shell URL", async () => {
-      const mockResponse = {
-        deployment: {
-          components: [
-            {
-              name: "componentName",
-              accessMethods: {
-                https: [{ label: "Web Shell", host: "example.com" }],
-              },
-            },
-          ],
-        },
-      };
-      fetchMock.mockResponseOnce(JSON.stringify(mockResponse));
+      (fetchUdfComponentWebShellServer as jest.Mock).mockResolvedValue("https://example.com");
 
       const result = await fetchUdfComponentWebShell("componentName");
       expect(result).toBe("https://example.com");
     });
 
     it("should return null if the component name is null", async () => {
+      (fetchUdfComponentWebShellServer as jest.Mock).mockResolvedValue(null);
       const result = await fetchUdfComponentWebShell(null);
       expect(result).toBeNull();
     });
 
     it("should return null if the Web Shell host is not found", async () => {
-      const mockResponse = {
-        deployment: {
-          components: [
-            {
-              name: "componentName",
-              accessMethods: {
-                https: [{ label: "Other", host: "example.com" }],
-              },
-            },
-          ],
-        },
-      };
-      fetchMock.mockResponseOnce(JSON.stringify(mockResponse));
+      (fetchUdfComponentWebShellServer as jest.Mock).mockResolvedValue(null);
 
       const result = await fetchUdfComponentWebShell("componentName");
       expect(result).toBeNull();
     });
 
     it("should return null on bad http fetch response", async () => {
-      fetchMock.mockResponseOnce("{}", {
-        status: 500,
-        headers: { "content-type": "application/json" },
-      });
+      (fetchUdfComponentWebShellServer as jest.Mock).mockRejectedValue(new Error("HTTP error! status: 500"));
 
-      expect(async () => {
-        await fetchUdfComponentWebShell("key");
-      }).rejects.toThrow(new Error("HTTP error! status: 500"));
+      await expect(fetchUdfComponentWebShell("key")).rejects.toThrow(new Error("HTTP error! status: 500"));
     });
   });
 

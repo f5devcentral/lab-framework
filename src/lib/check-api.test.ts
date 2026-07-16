@@ -8,10 +8,6 @@ jest.mock("./variables", () => ({
   getVariable: jest.fn(),
 }));
 
-jest.mock("@/app/contexts/instances", () => ({
-  isInstanceDocker: jest.fn().mockReturnValue(true),
-}));
-
 describe("checkAPI", () => {
   beforeEach(() => {
     fetchMock.resetMocks();
@@ -80,19 +76,17 @@ describe("checkAPI", () => {
   });
 
   it("should use TLS if tlsComponent is true", async () => {
-    (getComponentName as jest.Mock).mockResolvedValue("test-component");
-    (getVariable as jest.Mock).mockResolvedValue({ host: "localhost", ports: { host: 3000 } });
     fetchMock.mockResponseOnce("", { status: 200 });
 
     const result = await checkAPI({
       component: {
         name: "test-component",
-        ports: [{ containerPort: 3030, hostPort: 3000, protocol: "tcp" }]
+        ports: [{ containerPort: 443, hostPort: 3443, protocol: "tcp" }]
       } as Instance,
       tlsComponent: true
     });
     expect(result).toBe(true);
-    expect(fetchMock).toHaveBeenCalledWith("https://host.docker.internal:3000/", { mode: "cors", cache: "no-store" });
+    expect(fetchMock).toHaveBeenCalledWith("https://host.docker.internal:3443/", { mode: "cors", cache: "no-store" });
   });
 
   it("should append the path to the URL", async () => {
@@ -109,5 +103,131 @@ describe("checkAPI", () => {
     });
     expect(result).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith("http://host.docker.internal:3000/api/test", { mode: "cors", cache: "no-store" });
+  });
+
+  it("should prefer container port 443 host mapping when tlsComponent is true", async () => {
+    fetchMock.mockResponseOnce("", { status: 200 });
+
+    const result = await checkAPI({
+      component: {
+        name: "test-component",
+        ports: [
+          { containerPort: 80, hostPort: 8080, protocol: "tcp" },
+          { containerPort: 443, hostPort: 8443, protocol: "tcp" },
+        ]
+      } as Instance,
+      tlsComponent: true,
+    });
+
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith("https://host.docker.internal:8443/", { mode: "cors", cache: "no-store" });
+  });
+
+  it("should fail when tlsComponent is true and no container port 443 mapping exists", async () => {
+    await expect(
+      checkAPI({
+        component: {
+          name: "test-component",
+          ports: [{ containerPort: 80, hostPort: 8080, protocol: "tcp" }],
+        } as Instance,
+        tlsComponent: true,
+      })
+    ).rejects.toThrow("TLS requires container port 443 to be host-mapped or a valid component id for container-network access");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("should use container network endpoint on 443 when tlsComponent is true and 443 is not host-mapped", async () => {
+    fetchMock.mockResponseOnce("", { status: 200 });
+
+    const result = await checkAPI({
+      component: {
+        componentId: "testing-test-component",
+        image: "nginx:latest",
+        name: "test-component",
+        ports: [{ containerPort: 80, hostPort: 8080, protocol: "tcp" }],
+        type: 0,
+      } as Instance,
+      tlsComponent: true,
+    });
+
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith("https://testing-test-component:443/", { mode: "cors", cache: "no-store" });
+  });
+
+  it("should throw actionable TLS message when fallback endpoint is unreachable", async () => {
+    fetchMock.mockRejectOnce(new Error("fetch failed"));
+
+    await expect(
+      checkAPI({
+        component: {
+          componentId: "testing-test-component",
+          image: "nginx:latest",
+          name: "test-component",
+          ports: [{ containerPort: 80, hostPort: 8080, protocol: "tcp" }],
+          type: 0,
+        } as Instance,
+        tlsComponent: true,
+      })
+    ).rejects.toThrow(
+      "Failed API request: TLS endpoint is not reachable. Map container port 443 to a host port, or ensure the component id is reachable from the app container network"
+    );
+  });
+
+  it("should prefer container port 80 host mapping when tlsComponent is false", async () => {
+    fetchMock.mockResponseOnce("", { status: 200 });
+
+    const result = await checkAPI({
+      component: {
+        name: "test-component",
+        ports: [
+          { containerPort: 443, hostPort: 8443, protocol: "tcp" },
+          { containerPort: 80, hostPort: 8080, protocol: "tcp" },
+        ]
+      } as Instance,
+      tlsComponent: false,
+    });
+
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith("http://host.docker.internal:8080/", { mode: "cors", cache: "no-store" });
+  });
+
+  it("should fail immediately when host-mapped endpoint returns 403", async () => {
+    fetchMock.mockResponseOnce("forbidden", { status: 403 });
+
+    await expect(
+      checkAPI({
+        component: {
+          componentId: "testing-test-component",
+          image: "nginx:latest",
+          name: "test-component",
+          ports: [{ containerPort: 80, hostPort: 8080, protocol: "tcp" }],
+          type: 0,
+        } as Instance,
+        path: "/nginx_status",
+        tlsComponent: false,
+      })
+    ).rejects.toThrow("Failed API request: HTTP error 403: ");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("http://host.docker.internal:8080/nginx_status", { mode: "cors", cache: "no-store" });
+  });
+
+  it("should prefer host-mapped endpoint when componentId exists and tlsComponent is false", async () => {
+    fetchMock.mockResponseOnce("ok", { status: 200 });
+
+    const result = await checkAPI({
+      component: {
+        componentId: "testing-test-component",
+        image: "nginx:latest",
+        name: "test-component",
+        ports: [{ containerPort: 80, hostPort: 8080, protocol: "tcp" }],
+        type: 0,
+      } as Instance,
+      path: "/nginx_status",
+      tlsComponent: false,
+    });
+
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith("http://host.docker.internal:8080/nginx_status", { mode: "cors", cache: "no-store" });
   });
 });

@@ -39,3 +39,7 @@ next-env.d.ts
 
 .env
 report.json
+
+# Used in lab content
+nginx-api.conf
+ssl

@@ -50,7 +50,7 @@ You can start editing the lab markdown page by modifying `app/docs/nginx-one.mdx
 
 The lab framework runs in Docker, so the it must be installed in the host system. Additionally, the lab framework container will use the host's docker API to manage containers. The host system needs to expose the Docker API over a network so that the lab framework container can connect to it. This approach involves some setup and is more secure when properly configured, especially when using TLS for encrypted communication.
 
-Assuming a host system of Ubuntu 22.04, docker can be installed using the following:
+Assuming a host system of Ubuntu 24.04, docker can be installed using the following:
 
 ```shell
 sudo apt install -y ca-certificates curl gnupg lsb-release
@@ -87,7 +87,7 @@ sudo chmod 0666 /var/run/docker.sock
 
 ```
 
-A `docker-compose.yaml` file has been provided to orchestrate the lab framework and redis containers. In order for the lab framework to create additional containers required by the lab author, the docker calls need to use the host's docker daemon. The above steps enable mounting docker.sock as a volume into the container.
+A `docker-compose.yaml` file has been provided to orchestrate the lab framework containers. In order for the lab framework to create additional containers required by the lab author, the docker calls need to use the host's docker daemon. The above steps enable mounting docker.sock as a volume into the container.
 
 If this isn't preferred (or will not work), the host's docker daemon has been configured to allow remote hosts to call the docker API. To use this, you will specify a custom host via the `-H` parameter in order to connect to the hosts Docker API. Example:
 

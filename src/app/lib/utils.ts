@@ -12,7 +12,7 @@ export function mergeClasses(...classes: string[]): string {
 
 type InstanceDeploymentNameType = {
     name: string;
-    petname?: string;
+    deploymentIdentifier: string;
 };
 
 /**
@@ -20,17 +20,22 @@ type InstanceDeploymentNameType = {
  * 
  * @param {InstanceDeploymentNameType} param0 - The instance deployment name parameters.
  * @param {string} param0.name - The base name of the instance.
- * @param {string} [param0.petname='testing'] - An optional pet name to prefix the deployment name.
+ * @param {string} param0.deploymentIdentifier - The identifier prefix for the deployment name.
  * @returns {string} - The normalized deployment name.
  */
-export function getInstanceDeploymentName({ name, petname = 'testing' }: InstanceDeploymentNameType): string {
+export function getInstanceDeploymentName(
+    params: InstanceDeploymentNameType
+): string {
+
+    const { name } = params;
+    const { deploymentIdentifier } = params;
 
     /**
      * Replaces all non-alphanumeric characters in the name with hyphens and converts the string to lowercase.
      * This ensures the deployment name is suitable for Docker and Kubernetes, which require lowercase
      * alphanumeric characters and hyphens.
      */
-    const deploymentName = name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const deploymentName = name.replace(/[^a-z0-9]/gi, "").toLowerCase();
 
-    return `${petname}-${deploymentName}`;
+    return `${deploymentIdentifier}-${deploymentName}`;
 }

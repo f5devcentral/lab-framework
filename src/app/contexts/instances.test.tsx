@@ -1,21 +1,27 @@
 import { render, screen, act, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { InstancesContextProvider, useInstancesContext } from "./instances";
-import { getComponentName } from "@/lib/variables";
+import { getComponentName, getVariable } from "@/lib/variables";
 import {
   InstanceDocker,
   InstanceK8s,
+  InstanceState,
   InstanceType,
   InstanceUdf,
 } from "@/lib/types";
 
 import {
   createContainer,
+  getContainerPorts,
   removeContainer,
 } from "@/app/lib/docker-lib";
+import { syncDockerInstances } from "@/app/lib/docker-instance-sync";
 
 jest.mock("@/lib/variables", () => ({
   getComponentName: jest.fn(),
+  getVariable: jest.fn(),
+  setClientVariable: jest.fn(),
+  setVariable: jest.fn(),
   useInstances: jest.fn(),
 }));
 
@@ -31,14 +37,21 @@ jest.mock("@/lib/variables", () => ({
       return "unknown";
   }
 });
-
 jest.mock("@/lib/client-variables");
 
 import { useInstances as mockUseInstances } from "@/lib/client-variables";
 
 jest.mock("@/app/lib/docker-lib", () => ({
   createContainer: jest.fn(),
+  getContainerPorts: jest.fn().mockResolvedValue([]),
+  getContainerStatus: jest.fn().mockResolvedValue("unknown"),
+  getDockerInstanceSnapshot: jest.fn().mockResolvedValue(null),
+  isContainerPresent: jest.fn().mockResolvedValue(true),
   removeContainer: jest.fn(),
+}));
+
+jest.mock("@/app/lib/docker-instance-sync", () => ({
+  syncDockerInstances: jest.fn().mockResolvedValue([]),
 }));
 
 const mockUseInstancesState = (
@@ -74,7 +87,16 @@ describe("InstanceType Enum", () => {
 });
 
 describe("InstancesContextProvider", () => {
-  afterEach(() => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(async () => {
+    await act(async () => {
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
+    });
+    jest.useRealTimers();
     jest.clearAllMocks();
   });
 
@@ -194,11 +216,9 @@ describe("InstancesContextProvider", () => {
     }
   );
 
-  it("should log an error if an instance with a specific name already exists", async () => {
-    const consoleErrorMock = jest.spyOn(console, "error").mockImplementation();
-
+  it("should no-op if an instance with a specific name already exists", async () => {
     mockUseInstancesState([
-      { name: "test-docker", type: 0 } as InstanceDocker,
+      { name: "test-docker", status: InstanceState.Running, type: 0 } as InstanceDocker,
       { name: "test-udf", type: 1 } as InstanceUdf,
       { name: "test-k8s", type: 2 } as InstanceK8s,
     ]);
@@ -212,24 +232,232 @@ describe("InstancesContextProvider", () => {
     const addButton = screen.getByText("Add Docker Instance");
     const removeButton = screen.getByText("Remove Docker Instance");
 
-    // create an initial container to produce the scenario where the instance already exists
-    await act(async () => {
-      addButton.click();
-    });
-
     await act(async () => {
       addButton.click();
     });
 
     const instances = await waitFor(() => screen.getByTestId("instances"));
     expect(instances.textContent).toContain("test-docker");
-    expect(consoleErrorMock).toHaveBeenCalledWith("Instance already exists");
+    expect(createContainer).not.toHaveBeenCalled();
 
     await act(async () => {
       removeButton.click();
     });
+  });
 
-    consoleErrorMock.mockRestore();
+  it("should recreate a stale docker instance if it only exists in local state", async () => {
+    mockUseInstancesState([
+      { name: "test-docker", status: InstanceState.Unknown, type: 0 } as InstanceDocker,
+    ]);
+
+    render(
+      <InstancesContextProvider>
+        <TestComponent />
+      </InstancesContextProvider>
+    );
+
+    await act(async () => {
+      screen.getByText("Add Docker Instance").click();
+    });
+
+    expect(createContainer).toHaveBeenCalled();
+  });
+
+  it("should recreate an exited docker instance instead of treating it as duplicate", async () => {
+    mockUseInstancesState([
+      { name: "test-docker", status: InstanceState.Exited, type: 0 } as InstanceDocker,
+    ]);
+
+    render(
+      <InstancesContextProvider>
+        <TestComponent />
+      </InstancesContextProvider>
+    );
+
+    await act(async () => {
+      screen.getByText("Add Docker Instance").click();
+    });
+
+    expect(createContainer).toHaveBeenCalled();
+  });
+
+  it("should poll docker api and update docker status in local model", async () => {
+    mockUseInstancesState([
+      { name: "test-docker", status: InstanceState.Running, type: 0 } as InstanceDocker,
+    ]);
+
+    (syncDockerInstances as jest.Mock).mockResolvedValueOnce([
+      {
+        componentId: "mapped-test-docker",
+        isPresent: true,
+        name: "test-docker",
+        status: InstanceState.Exited,
+        type: InstanceType.Docker,
+      },
+    ]);
+
+    render(
+      <InstancesContextProvider>
+        <TestComponent />
+      </InstancesContextProvider>
+    );
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("instances").textContent).toContain("\"status\":\"exited\"");
+    });
+  });
+
+  it("should preserve the last known running status when polling returns unknown", async () => {
+    mockUseInstancesState([
+      { name: "test-docker", status: InstanceState.Running, type: 0 } as InstanceDocker,
+    ]);
+
+    (syncDockerInstances as jest.Mock).mockResolvedValueOnce([
+      {
+        componentId: "mapped-test-docker",
+        isPresent: true,
+        name: "test-docker",
+        status: InstanceState.Unknown,
+        type: InstanceType.Docker,
+      },
+    ]);
+
+    render(
+      <InstancesContextProvider>
+        <TestComponent />
+      </InstancesContextProvider>
+    );
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("instances").textContent).toContain("\"status\":\"running\"");
+    });
+  });
+
+  it("should not rewrite instances when docker polling returns the same snapshot", async () => {
+    mockUseInstancesState([
+      {
+        componentId: "mapped-test-docker",
+        image: "test-image",
+        name: "test-docker",
+        ports: [],
+        status: InstanceState.Running,
+        stoppedByUser: false,
+        type: 0,
+      } as InstanceDocker,
+    ]);
+
+    (syncDockerInstances as jest.Mock).mockResolvedValueOnce([
+      {
+        componentId: "mapped-test-docker",
+        image: "test-image",
+        isPresent: true,
+        name: "test-docker",
+        ports: [],
+        status: InstanceState.Running,
+        type: InstanceType.Docker,
+      },
+    ]);
+
+    const renderCounter = { current: 0 };
+
+    const RenderCounter = () => {
+      renderCounter.current += 1;
+      return <div data-testid="render-count">{renderCounter.current}</div>;
+    };
+
+    render(
+      <InstancesContextProvider>
+        <RenderCounter />
+      </InstancesContextProvider>
+    );
+
+    expect(screen.getByTestId("render-count").textContent).toBe("1");
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+      await Promise.resolve();
+    });
+
+    expect(screen.getByTestId("render-count").textContent).toBe("1");
+  });
+
+  it("should resolve docker component names before polling and backfill componentId", async () => {
+    mockUseInstancesState([
+      { name: "Test Docker", status: InstanceState.Unknown, type: 0 } as InstanceDocker,
+    ]);
+
+    (syncDockerInstances as jest.Mock).mockResolvedValueOnce([
+      {
+        componentId: "mapped-test-docker",
+        image: "test-image",
+        isPresent: true,
+        name: "Test Docker",
+        ports: [],
+        status: InstanceState.Running,
+        type: InstanceType.Docker,
+      },
+    ]);
+
+    render(
+      <InstancesContextProvider>
+        <TestComponent />
+      </InstancesContextProvider>
+    );
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      const instances = screen.getByTestId("instances").textContent ?? "";
+      expect(instances).toContain("\"componentId\":\"mapped-test-docker\"");
+      expect(instances).toContain("\"status\":\"running\"");
+    });
+
+    expect(syncDockerInstances).toHaveBeenCalledWith(["Test Docker"]);
+  });
+
+  it("should remove docker instances missing from docker api", async () => {
+    mockUseInstancesState([
+      { name: "test-docker", status: InstanceState.Running, type: 0 } as InstanceDocker,
+    ]);
+
+    (syncDockerInstances as jest.Mock).mockResolvedValueOnce([
+      {
+        isPresent: false,
+        name: "test-docker",
+        status: InstanceState.Unknown,
+        type: InstanceType.Docker,
+      },
+    ]);
+
+    render(
+      <InstancesContextProvider>
+        <TestComponent />
+      </InstancesContextProvider>
+    );
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("instances").textContent).not.toContain("test-docker");
+    });
+
+    expect(syncDockerInstances).toHaveBeenCalledWith(["test-docker"]);
   });
 
   it("should log an error if an error is thrown when adding an instance", async () => {
@@ -253,12 +481,99 @@ describe("InstancesContextProvider", () => {
     });
 
     const instances = screen.getByTestId("instances");
-    expect(instances.textContent).toContain("test-docker");
+    expect(instances.textContent).not.toContain("test-docker");
     expect(consoleErrorMock).toHaveBeenCalledWith(
       "Create Container Error: ",
       expect.any(Error)
     );
     consoleErrorMock.mockRestore();
+  });
+
+  it("should pass variable-backed docker env to createContainer for server-side resolution", async () => {
+    mockUseInstancesState([]);
+    (getComponentName as jest.Mock).mockResolvedValue("test-docker");
+    (getVariable as jest.Mock).mockResolvedValue("token-from-lab-variables");
+
+    const TestDockerEnvComponent = () => {
+      const { addInstance } = useInstancesContext();
+      return (
+        <button
+          onClick={() =>
+            addInstance({
+              env: [{ name: "TOKEN", isVariable: true }],
+              image: "test-image",
+              name: "test-docker",
+              type: InstanceType.Docker,
+            } as InstanceDocker)
+          }
+        >
+          Add Docker With Env
+        </button>
+      );
+    };
+
+    render(
+      <InstancesContextProvider>
+        <TestDockerEnvComponent />
+      </InstancesContextProvider>
+    );
+
+    await act(async () => {
+      screen.getByText("Add Docker With Env").click();
+    });
+
+    expect(createContainer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        env: [{ name: "TOKEN", isVariable: true, value: "token-from-lab-variables" }],
+      })
+    );
+    expect(getVariable).toHaveBeenCalledWith("TOKEN");
+  });
+
+  it("should persist resolved host and container ports to docker instance state after creation", async () => {
+    mockUseInstancesState([]);
+    (getComponentName as jest.Mock).mockResolvedValue("test-docker");
+    (getContainerPorts as jest.Mock).mockResolvedValue([
+      { containerPort: 80, hostPort: 49153 },
+    ]);
+
+    const TestDockerPortComponent = () => {
+      const { addInstance, instances } = useInstancesContext();
+      return (
+        <>
+          <button
+            onClick={() =>
+              addInstance({
+                image: "test-image",
+                name: "test-docker",
+                ports: [{ containerPort: 80 }],
+                type: InstanceType.Docker,
+              } as InstanceDocker)
+            }
+          >
+            Add Docker With Ports
+          </button>
+          <div data-testid="instances-with-ports">{JSON.stringify(instances)}</div>
+        </>
+      );
+    };
+
+    render(
+      <InstancesContextProvider>
+        <TestDockerPortComponent />
+      </InstancesContextProvider>
+    );
+
+    await act(async () => {
+      screen.getByText("Add Docker With Ports").click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("instances-with-ports").textContent).toContain("\"hostPort\":49153");
+      expect(screen.getByTestId("instances-with-ports").textContent).toContain("\"containerPort\":80");
+    });
+
+    expect(getContainerPorts).toHaveBeenCalledWith("test-docker", "test-docker");
   });
 
   test.each(["Docker", "K8s", "Udf"])(

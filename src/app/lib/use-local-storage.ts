@@ -1,5 +1,23 @@
 "use client"
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+function readStoredValue<T>(key: string, fallback: T): T {
+    try {
+        const value = localStorage.getItem(key)
+        if (value) {
+            return JSON.parse(value) as T
+        }
+    } catch {
+        // Fall through to fallback below.
+    }
+
+    localStorage.setItem(key, JSON.stringify(fallback));
+    return fallback;
+}
+
+function persistStoredValue<T>(key: string, value: T): void {
+    localStorage.setItem(key, JSON.stringify(value));
+}
 
 /**
  * Custom hook to manage state synchronized with localStorage.
@@ -14,38 +32,30 @@ import { useState } from "react";
  * setValue('newValue');
  */
 const useLocalStorage = <T>(key: string, defaultValue: T): [T, (valueOrFn: T | ((val: T) => T)) => void] => {
+    const defaultValueRef = useRef(defaultValue);
+    const [localStorageValue, setLocalStorageValue] = useState<T>(defaultValueRef.current)
 
-    // Create state variable to store localStorage value in state
-    const [localStorageValue, setLocalStorageValue] = useState(() => {
-        try {
-            const value = localStorage.getItem(key)
-            if (value) {
-                // If value is already present in localStorage then return it
-                return JSON.parse(value)
-            } else {
-                // Else set default value in localStorage and then return it
-                localStorage.setItem(key, JSON.stringify(defaultValue));
-                return defaultValue
-            }
-        } catch {
-            // If an error is caught during reading or parsing of an existing value, set default value in localStorage and then return it
-            localStorage.setItem(key, JSON.stringify(defaultValue));
-            return defaultValue
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return;
         }
-    })
+
+        setLocalStorageValue(readStoredValue(key, defaultValueRef.current));
+    }, [key]);
 
     // this method update our localStorage and our state
     const setLocalStorageStateValue = (valueOrFn: T | ((val: T) => T)) => {
-        let newValue;
-        if (typeof valueOrFn === 'function') {
-            const fn = valueOrFn as (val: T) => T;
-            newValue = fn(localStorageValue)
-        }
-        else {
-            newValue = valueOrFn;
-        }
-        localStorage.setItem(key, JSON.stringify(newValue));
-        setLocalStorageValue(newValue)
+        setLocalStorageValue((prevValue) => {
+            const newValue = typeof valueOrFn === "function"
+                ? (valueOrFn as (val: T) => T)(prevValue)
+                : valueOrFn;
+
+            if (typeof window !== "undefined") {
+                persistStoredValue(key, newValue);
+            }
+
+            return newValue;
+        });
     }
     return [localStorageValue, setLocalStorageStateValue]
 }

@@ -1,5 +1,6 @@
 import { delay } from '@/lib/utils';
 import { ensureError } from '@/lib/utils';
+import { isTruthyBooleanLike } from '@/lib/utils';
 
 describe('delay', () => {
   jest.useFakeTimers();
@@ -38,5 +39,25 @@ describe('ensureError', () => {
     const result = ensureError(circularObj);
     expect(result).toBeInstanceOf(Error);
     expect(result.message).toBe('This value was thrown as is, not through an Error: [Unable to stringify the thrown value]');
+  });
+});
+
+describe('isTruthyBooleanLike', () => {
+  it('returns true for supported truthy values', () => {
+    expect(isTruthyBooleanLike(true)).toBe(true);
+    expect(isTruthyBooleanLike(1)).toBe(true);
+    expect(isTruthyBooleanLike('true')).toBe(true);
+    expect(isTruthyBooleanLike('{true}')).toBe(true);
+    expect(isTruthyBooleanLike('1')).toBe(true);
+    expect(isTruthyBooleanLike('')).toBe(true);
+  });
+
+  it('returns false for other values', () => {
+    expect(isTruthyBooleanLike(false)).toBe(false);
+    expect(isTruthyBooleanLike(0)).toBe(false);
+    expect(isTruthyBooleanLike('false')).toBe(false);
+    expect(isTruthyBooleanLike('0')).toBe(false);
+    expect(isTruthyBooleanLike(null)).toBe(false);
+    expect(isTruthyBooleanLike(undefined)).toBe(false);
   });
 });

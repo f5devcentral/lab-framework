@@ -1,103 +1,83 @@
-"use client";
-import { Button } from "@/app/components/button";
-import { useInstancesContext } from "@/app/contexts/instances";
-import { InstanceState, InstanceType } from "@/lib/types";
-import { getContainerStatus } from "@/app/lib/docker-lib";
-import type { InstanceDocker, DockerPortMapping } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { DockerInstance } from "./docker-instance";
+import { DockerAttribute, DockerPortMapping, InstanceDockerEnv, InstanceState } from "@/lib/types";
 
-/**
- * The default ports for a Docker instance.
- */
-const defaultPorts: DockerPortMapping[] = [{ containerPort: 80, hostPort: 80 }];
-
-/**
- * A component that represents a Docker instance.
- *
- * @param {InstanceDocker} props - The props for the DockerInstance component.
- * @returns {JSX.Element} - The rendered DockerInstance component.
- */
-export function DockerInstance({
-  name,
-  description = "",
-  image,
-  ports = defaultPorts as DockerPortMapping[],
-}: {
+type DockerProps = {
   name: string;
   description?: string;
   image: string;
+  env?: InstanceDockerEnv[] | string;
+  port?: { host?: number; container: number } | null;
   ports?: DockerPortMapping[];
-}) {
-  const { instances, addInstance, removeInstance } = useInstancesContext();
+  attrs?: DockerAttribute[] | string;
+};
 
-  const [state, setState] = useState<InstanceState>(InstanceState.Unknown);
+function normalizeDockerEnvProp(envProp?: InstanceDockerEnv[] | string): InstanceDockerEnv[] | undefined {
+  if (!envProp) {
+    return undefined;
+  }
 
-  useEffect(() => {
-    const fetchStatus = async () => {
-      const instanceState = await getContainerStatus(name);
-      setState(instanceState);
-      return instanceState as InstanceState;
-    };
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
-    return () => clearInterval(interval);
-  }, [name]);
+  if (Array.isArray(envProp)) {
+    return envProp;
+  }
 
+  try {
+    const parsed = JSON.parse(envProp) as unknown;
+    if (!Array.isArray(parsed)) {
+      return undefined;
+    }
+
+    return parsed
+      .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === "object")
+      .map((entry) => ({
+        name: typeof entry.name === "string" ? entry.name : "",
+        ...(typeof entry.value === "string" ? { value: entry.value } : {}),
+        ...(typeof entry.isVariable === "boolean" ? { isVariable: entry.isVariable } : {}),
+        ...(typeof entry.isSecret === "boolean" ? { isSecret: entry.isSecret } : {}),
+      }))
+      .filter((entry) => entry.name.length > 0);
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeDockerAttrsProp(attrsProp?: DockerAttribute[] | string): DockerAttribute[] | undefined {
+  if (!attrsProp) {
+    return undefined;
+  }
+
+  if (Array.isArray(attrsProp)) {
+    return attrsProp;
+  }
+
+  try {
+    const parsed = JSON.parse(attrsProp) as unknown;
+    if (!Array.isArray(parsed)) {
+      return undefined;
+    }
+
+    return parsed
+      .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === "object")
+      .map((entry) => ({
+        name: typeof entry.name === "string" ? entry.name : "",
+        value: typeof entry.value === "string" ? entry.value : "",
+      }))
+      .filter((entry) => entry.name.length > 0);
+  } catch {
+    return undefined;
+  }
+}
+
+export function Docker(props: DockerProps) {
+  const normalizedEnv = normalizeDockerEnvProp(props.env);
+  const normalizedAttrs = normalizeDockerAttrsProp(props.attrs);
   return (
-    <>
-      <div className="px-6 pt-4">
-        <div className="font-bold text-xl mb-2">{name}</div>
-        <p className="text-gray-700 text-sm">{description}</p>
-      </div>
-      <div className="px-6 pb-5">
-        <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-xs text-gray-700 mr-2 mb-2 text-nowrap">
-          <span className="font-semibold">image:</span>
-          {image}
-        </span>
-        <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-xs text-gray-700 mr-2 mb-2">
-          <span className="font-semibold">port:</span>
-          {ports[0].hostPort}
-        </span>
-      </div>
-      <div className="px-6 pt-4">
-        <div className="font-bold text-xl mb-2 capitalize">Status: {state}</div>
-      </div>
-      <div className="px-6 pb-5">
-        <Button
-          onClick={async () => {
-            setState(InstanceState.Creating);
-            await addInstance({
-              image,
-              name,
-              ports,
-              type: InstanceType.Docker,
-            } as InstanceDocker);
-          }}
-          disabled={
-            state === InstanceState.Creating ||
-            state === InstanceState.Running ||
-            state === InstanceState.Removing
-          }
-          className="bg-blue-500"
-        >
-          Create
-        </Button>
-        <span className="px-1" />
-        <Button
-          onClick={async () => {
-            setState(InstanceState.Removing);
-            await removeInstance({
-              name,
-              type: InstanceType.Docker,
-            } as InstanceDocker);
-          }}
-          disabled={state !== InstanceState.Running}
-          className="bg-red-500"
-        >
-          Stop
-        </Button>
-      </div>
-      <div data-testid="instances">{JSON.stringify(instances)}</div>
-    </>
+    <DockerInstance
+      {...props}
+      env={normalizedEnv}
+      attrs={normalizedAttrs}
+      initialState={InstanceState.Unknown}
+    />
   );
 }
+
+export { DockerInstance };

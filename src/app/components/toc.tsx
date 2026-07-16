@@ -1,66 +1,93 @@
 "use client";
 import { useEffect, useState } from "react";
 
-export function ToC() {
-  type Heading = {
-    title: string;
-    id: string;
-    level: number;
-  };
+type Heading = {
+  title: string;
+  id: string;
+  level: number;
+};
 
+function toHeadingId(value: string): string {
+  return value.trim().toLowerCase().replace(/\s/g, "-");
+}
+
+function getHeadingSummary(heading: Element, id: string): Heading {
+  return {
+    title: (heading as HTMLElement).innerText,
+    id,
+    level: Number.parseInt(heading.tagName.substring(1), 10),
+  };
+}
+
+function collectHeadings(headingElements: NodeListOf<Element>): Heading[] {
+  const idCounts: Record<string, number> = {};
+
+  return Array.from(headingElements).map((heading) => {
+    const baseId = toHeadingId(heading.childNodes[0]?.textContent ?? "");
+    const nextCount = (idCounts[baseId] ?? 0) + 1;
+    idCounts[baseId] = nextCount;
+
+    const id = nextCount > 1 ? `${baseId}-${nextCount}` : baseId;
+    if (id) {
+      heading.setAttribute("id", id);
+    }
+
+    return getHeadingSummary(heading, id);
+  });
+}
+
+function syncActiveHeading(observerEntry: IntersectionObserverEntry, setActiveId: (id: string) => void): void {
+  if (observerEntry.isIntersecting) {
+    setActiveId(observerEntry.target.id);
+  }
+}
+
+export function ToC() {
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState("");
 
-  useEffect(() => {
-    // Get all the headings on the page
-    const headingElements = document.querySelectorAll("h1, h2, h3, h4");
-    const idCounts: { [key: string]: number } = {}; // To keep track of the number of times an ID has been used
-    const headings = Array.from(headingElements).map((heading) => {
-      let id = (heading.childNodes[0]?.textContent as string)
-        ?.toLowerCase()
-        .replace(/\s/g, "-");
+  const handleHeadingClick = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    event.preventDefault();
 
-      // If the ID already exists, append a counter to make it unique
-      if (idCounts[id]) {
-        idCounts[id] += 1;
-        id = `${id}-${idCounts[id]}`;
-      } else {
-        idCounts[id] = 1;
-      }
+    const element = document.getElementById(id);
+    if (!element) {
+      return;
+    }
 
-      if (id) {
-        heading.setAttribute("id", id); // Set the id attribute of the heading element
-      }
-      return {
-        title: (heading as HTMLElement).innerText,
-        id: id,
-        level: parseInt(heading.tagName.substring(1)), // Get the heading level
-      };
+    element.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+      inline: "nearest",
     });
-    // Defer state update to avoid synchronous setState in effect.
-    queueMicrotask(() => setHeadings(headings));
+    window.history.replaceState(null, "", `#${id}`);
+  };
+
+  useEffect(() => {
+    const headingElements = document.querySelectorAll("h1, h2, h3, h4");
+    const nextHeadings = collectHeadings(headingElements);
+
+    setHeadings(nextHeadings);
 
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-          }
-        });
+        entries.forEach((entry) => syncActiveHeading(entry, setActiveId));
       },
-      { rootMargin: "0px 0px -80% 0px" } // Adjust as needed
+      { rootMargin: "0px 0px -80% 0px" }
     );
 
     headingElements.forEach((heading) => observer.observe(heading));
 
     return () => {
-      headingElements.forEach((heading) => observer.unobserve(heading));
+      observer.disconnect();
     };
   }, []);
 
   return (
-    <div className="toc-container p-1 w-80 sticky top-0 border-r-2 border-t-2 h-screen overflow-y-auto">
-      <ul className="list-none">
+    <div className="toc-container h-full w-80 overflow-y-auto rounded-r-lg border border-slate-200 bg-slate-50/80 px-3 py-4">
+      <div className="mb-3 border-b border-slate-200 pb-2 text-sm font-semibold uppercase tracking-wide text-slate-600">
+        On this page
+      </div>
+      <ul className="list-none m-0 p-0">
         {headings.map((heading, index) => (
           <li
             key={`${heading.id}_${index}`}
@@ -71,8 +98,9 @@ export function ToC() {
             }}
           >
             <a
-              className="no-underline text-gray-600 text-base"
+              className="block rounded px-2 py-1 text-base text-slate-700 no-underline transition-colors hover:bg-slate-200 hover:text-slate-900"
               href={`#${heading.id}`}
+              onClick={(event) => handleHeadingClick(event, heading.id)}
             >
               {heading.title}
             </a>

@@ -3,7 +3,7 @@ import { mergeClasses } from "@/app/lib/utils";
 import { useState } from "react";
 
 const buttonStyles =
-  "px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed";
+  "px-4 py-2 text-white rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
 
 /**
  * A reusable button component.

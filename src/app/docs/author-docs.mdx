@@ -1,0 +1,463 @@
+---
+title: Lab Author Docs
+description: Outlines the JSX components that are available and how to use them.
+order: 5
+---
+
+{/* markdownlint-disable */}
+
+## APICheck
+
+The **APICheck** allows the lab author to check an API endpoint with an optional path and HTTP response code.
+The component will also look up the target Docker component's ephemeral networking information if it's the target of the API check.
+
+**Note**: you must supply either a **componentName** or a **url**.
+
+| Variable             | Description                                                                                              | Required |
+|----------------------|----------------------------------------------------------------------------------------------------------|----------|
+| **componentName**    | The name of the component to check.                                                                      | Yes      |
+| **path**             | The path to append to the component for the API check.                                                   | No       |
+| **targetStatusCode** | The expected HTTP status code from the API check.                                                        | No       |
+| **url**              | The URL to check.                                                                                        | Yes      |
+| **tlsComponent**     | If a component name is specified, use TLS (https) to connect to the component. Default is no TLS (http). | No       |
+
+### Examples
+
+Calling APICheck with a component name:
+
+```jsx
+<APICheck 
+componentName="nginx-plus-2" 
+targetStatusCode={200} 
+/>
+```
+
+<APICheck 
+  componentName="nginx-plus-2" 
+  targetStatusCode={200}  
+/>
+
+Calling APICheck with a component name and a path:
+
+```jsx
+<APICheck 
+componentName="nginx-plus-2" 
+path="/example-path" 
+targetStatusCode={200}  
+/>
+```
+
+<APICheck 
+  componentName="nginx-plus-2" 
+  path="/example-path" 
+  targetStatusCode={200}  
+/>
+
+Calling APICheck with a component name via TLS:
+
+```jsx
+<APICheck 
+componentName="nginx-plus-2" 
+targetStatusCode={200} 
+tlsComponent={true}
+/>
+```
+
+<APICheck 
+  componentName="nginx-plus-2" 
+  targetStatusCode={200} 
+  tlsComponent={true}
+/>
+
+Calling APICheck with a url:
+
+ ```jsx
+<APICheck  
+targetStatusCode={200} 
+url="http://f5.com" 
+/>
+```
+
+<APICheck  
+  targetStatusCode={200} 
+  url="http://f5.com" 
+/>
+
+<br />
+---
+
+## APIHeaderCheck
+
+The **APIHeaderCheck**  allows the lab author to check an API endpoint's headers with an optional path and HTTP response code. 
+The component will also look up the target Docker component's ephemeral networking information if it's the target of the API check.
+
+**Note**: you must supply either a **componentName** or a **url**.
+
+| Variable             | Description                                                                                              | Required |
+|----------------------|----------------------------------------------------------------------------------------------------------|----------|
+| **componentName**    | The name of the component to check.                                                                      | Yes      |
+| **headerName**       | The header name                                                                                          | Yes      |
+| **headerValue**      | The header value                                                                                         | Yes      |
+| **path**             | The path to append to the component for the API check.                                                   | No       |
+| **targetStatusCode** | The expected HTTP status code from the API check.                                                        | No       |
+| **url**              | The URL to check.                                                                                        | Yes      |
+| **tlsComponent**     | If a component name is specified, use TLS (https) to connect to the component. Default is no TLS (http). | No       |
+
+### Examples
+
+Calling APICheck with a component name:
+
+```jsx
+<APIHeaderCheck 
+  componentName="nginx-plus-2" 
+  headerName="Server"
+  headerValue="nginx/1.25.5"
+  path="/example-path" 
+  targetStatusCode={200}  
+/>
+ ```
+<APIHeaderCheck 
+  componentName="nginx-plus-2" 
+  headerName="Server"
+  headerValue="nginx/1.25.5"
+  path="/example-path" 
+  targetStatusCode={200}  
+/>
+
+Calling APIHeaderCheck with a component name via TLS:
+
+```jsx
+<APIHeaderCheck 
+  componentName="nginx-plus-2" 
+  headerName="Server"
+  headerValue="nginx/1.25.5"
+  path="/example-path" 
+  targetStatusCode={200} 
+  tlsComponent={true}
+/>
+ ```
+<APIHeaderCheck 
+  componentName="nginx-plus-2" 
+  headerName="Server"
+  headerValue="nginx/1.25.5"
+  path="/example-path" 
+  targetStatusCode={200} 
+  tlsComponent={true}
+/>
+
+Calling APICheck with a url:
+
+```jsx
+<APIHeaderCheck
+  headerName="Server"
+  headerValue="nginx/1.25.5"  
+  targetStatusCode={200} 
+  url="https://api.example.com" 
+/>
+```
+
+<APIHeaderCheck
+  headerName="Server"
+  headerValue="nginx/1.25.5"  
+  targetStatusCode={200} 
+  url="https://api.example.com" 
+/>
+
+<br />
+---
+
+## APIResponseCheck
+
+The **APIResponseCheck**  allows the lab author to check an API endpoint's response with an optional path and HTTP response code. 
+The component will also look up the target Docker component's ephemeral networking information if it's the target of the API check.
+
+**Note**: you must supply either a **componentName** or a **url**.
+
+| Variable             | Description                                                                                              | Required |
+|----------------------|----------------------------------------------------------------------------------------------------------|----------|
+| **componentName**    | The name of the component to check.                                                                      | Yes      |
+| **path**             | The path to append to the component for the API check.                                                   | No       |
+| **searchString**     | A string to look for in the response.                                                                    | Yes      |
+| **targetStatusCode** | The expected HTTP status code from the API check.                                                        | No       |
+| **url**              | The URL to check.                                                                                        | Yes      |
+| **tlsComponent**     | If a component name is specified, use TLS (https) to connect to the component. Default is no TLS (http). | No       |
+
+
+### Examples
+
+Calling APICheck with a component name:
+
+```jsx
+<APIResponseCheck 
+  componentName="nginx-plus-2" 
+  path="/example-path" 
+  searchString="nginx"
+  targetStatusCode={200}  
+/>
+ ```
+<APIResponseCheck 
+  componentName="nginx-plus-2" 
+  path="/example-path" 
+  searchString="nginx"
+  targetStatusCode={200}  
+/>
+
+Calling APICheck with a component name via TLS:
+
+```jsx
+<APIResponseCheck 
+  componentName="nginx-plus-2" 
+  path="/example-path" 
+  searchString="nginx"
+  targetStatusCode={200} 
+  tlsComponent={true}
+/>
+ ```
+<APIResponseCheck 
+  componentName="nginx-plus-2" 
+  path="/example-path" 
+  searchString="nginx"
+  targetStatusCode={200} 
+  tlsComponent={true}
+/>
+
+Calling APICheck with a url:
+
+```jsx
+<APIResponseCheck
+  searchString="nginx"
+  targetStatusCode={200} 
+  url="https://api.example.com" 
+/>
+```
+
+<APIResponseCheck
+  searchString="nginx"
+  targetStatusCode={200} 
+  url="https://api.example.com" 
+/>
+
+<br />
+---
+
+## Container for API Checks
+
+The framework uses the **APICheckContainer** wrapper component to help correctly display all individual **ApiCheck**, **APIHeaderCheck**, and **APIResponseCheck** components in the lab guide. This is useful if you need to group together more than one of the preceding components.
+
+### Examples
+
+Grouping more than one check component:
+
+```jsx
+<APICheckContainer>
+  <APICheck 
+  componentName="nginx-plus-2" 
+  targetStatusCode={200}  
+  />
+  <APIHeaderCheck
+    headerName="Server"
+    headerValue="nginx/1.25.5"  
+    targetStatusCode={200} 
+    url="https://api.example.com" 
+  />
+  <APIResponseCheck 
+    componentName="nginx-plus-2" 
+    path="/example-path" 
+    searchString="nginx"
+    targetStatusCode={200}  
+  />
+</APICheckContainer>
+  ```
+
+<APICheckContainer>
+  <APICheck 
+  componentName="nginx-plus-2" 
+  targetStatusCode={200}  
+  />
+  <APIHeaderCheck
+    headerName="Server"
+    headerValue="nginx/1.25.5"  
+    targetStatusCode={200} 
+    url="https://api.example.com" 
+  />
+  <APIResponseCheck 
+    componentName="nginx-plus-2" 
+    path="/example-path" 
+    searchString="nginx"
+    targetStatusCode={200}  
+  />
+</APICheckContainer>
+
+<br />
+---
+
+## Docker Component
+
+The lab framework allows you to deploy docker containers within the lab guide.
+
+The framework uses the **DockerContainer** wrapper component to help correctly display all individual **Docker** components in the lab guide.
+
+The **Docker** component is responsible for managing and displaying information about the container.  
+
+| Variable        | Description                                           | Required |
+|-----------------|-------------------------------------------------------|----------|
+| **name**        | A unique name for the Docker container.               | Yes      |
+| **description** | The description of the Docker container.              | No       |
+| **image**       | The image of the Docker container.                    | Yes      |
+| **env**         | The environment variables for the Docker container.   | No       |
+| **port**        | The port mapping for the Docker container.            | No       |
+| **attrs**       | Additional attributes for the Docker container.       | No       |
+
+### Examples
+
+```jsx
+<DockerContainer>
+  <Docker 
+    name="nginx-plus-1" 
+    description="This is an example Docker container." 
+    image="private-registry.nginx.com/nginx-plus/agent:debian" 
+    env={[
+      { name: "NGINX_AGENT_SERVER_HOST", value: "value", isVariable: false },
+      { name: "NGINX_AGENT_SERVER_TOKEN", isVariable: true, isSecret: true }
+    ]} 
+    port={{host: 55055, container: 80}}
+    attrs={[
+      { name: "volume", value: "<path to folder on Docker host>/ssl:/etc/nginx/ssl" }
+    ]}
+  />
+  <Docker
+    name="nginx-plus-2"
+    image="private-registry.nginx.com/nginx-plus/agent:debian"
+  />
+ </DockerContainer>
+```
+<br />
+
+<DockerContainer>
+  <Docker 
+    name="nginx-plus-1" 
+    description="This is an example Docker container." 
+    image="private-registry.nginx.com/nginx-plus/agent:debian" 
+    env={[
+      { name: "NGINX_AGENT_SERVER_HOST", value: "agent.connect.nginx.com" },
+      { name: "NGINX_AGENT_SERVER_TOKEN", isVariable: true, isSecret: true }
+      ]} 
+    port={{host: 55055, container: 80}} 
+  />
+  <Docker
+    name="nginx-plus-2"
+    image="private-registry.nginx.com/nginx-plus/agent:debian"
+  />
+</DockerContainer>
+
+<br />
+---
+
+## GetVariable
+
+The **GetVariable** component allows a lab author to insert a dynamic variable into the lab guide. 
+
+The method will look for the variable in the following locations:
+
+- Environment Variable
+- Redis database
+- LabInfo API (inside UDF)
+- UDF Metadata API (inside UDF)
+
+| Variable    | Description          | Required |
+|-------------|----------------------|----------|
+| **name**    | The variable name.   | Yes      |
+
+### Example
+
+```mdx
+Test variable from LabInfo API: <GetVariable name="LabID" />
+```
+
+Test variable from LabInfo API: <GetVariable name="LabID" />
+
+<br />
+---
+
+## InputVariable
+
+The **InputVariable** component allows a lab author to insert a variable into the Redis database for reference later.
+
+| Variable    | Description          | Required |
+|-------------|----------------------|----------|
+| **name**    | The variable name.   | Yes      |
+| **value**   | The variable value.  | No       |
+
+### Example
+
+No default value:
+
+```jsx
+<InputVariable 
+  name="exampleKey"  
+/>
+ ```
+<InputVariable 
+  name="exampleKey" 
+/>
+
+With default value:
+
+```jsx
+<InputVariable 
+  name="exampleKey"
+  value="exampleValue"  
+/>
+ ```
+<InputVariable 
+  name="exampleKey" 
+  value="exampleValue"
+/>
+
+<br />
+---
+
+## UDFComponent
+
+The **UDFComponent** provides a tile with a button that will open the web shell for the UDF lab component.
+
+| Variable    | Description          | Required |
+|-------------|----------------------|----------|
+| **name**    | The component name.  | Yes      |
+
+
+### Example
+
+```jsx
+<UDFComponent
+  name="Runner"
+/>
+```
+
+<UDFComponent
+  name="Runner"
+/>
+
+<br />
+---
+
+## CreateCertificate
+
+The **CreateCertificate** provides a tile with a button that will create PEM-formatted certificates and keys.
+
+| Variable        | Description                                            | Required |
+|-----------------|--------------------------------------------------------|----------|
+| **commonName**  | The common name to use when creating the certificate.  | Yes      |
+
+
+### Example
+
+```jsx
+<CreateCertificate
+  commonName="mywebsite.f5demos.com"
+/>
+```
+
+<CreateCertificate
+  commonName="mywebsite.f5demos.com"
+/>
