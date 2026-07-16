@@ -8,11 +8,11 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js 22.x
+      - uses: actions/checkout@v4
+      - name: Use Node.js 24.x
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 24.x
       - name: Check Node.js version
         run: node -pe process.versions
       - name: Install dependencies
