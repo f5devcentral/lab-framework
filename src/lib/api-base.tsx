@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ensureError, isTruthyBooleanLike } from "./utils";
 import { useInstances } from "./client-variables";
 import { Instance, InstanceState, InstanceType } from "./types";
-import { getDockerInstanceSnapshot } from "@/app/lib/docker-lib";
 import { resolveClientVariable } from "@/app/lib/client-variable-resolver";
 
 /**
@@ -85,7 +84,7 @@ export function APIBase({
 
       const dockerSnapshot =
         resolvedComponent === null && componentName && url === null
-          ? await getDockerInstanceSnapshot(componentName)
+          ? await import("@/app/lib/docker-lib").then(({ getDockerInstanceSnapshot }) => getDockerInstanceSnapshot(componentName))
           : null;
 
       if (dockerSnapshot !== null) {

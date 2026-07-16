@@ -8,7 +8,9 @@
     "prestart": "npm run build",
     "start": "node .next/standalone/server.js",
     "lint": "eslint .",
-    "test": "jest --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:ci": "jest --runInBand --watchAll=false",
     "test-coverage": "jest --coverage"
   },
   "dependencies": {
