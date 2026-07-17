@@ -4,6 +4,7 @@ on:
   push:
     branches: ["main"]
   pull_request:
+    types: [opened, synchronize, reopened]
 
 env:
   REGISTRY: ghcr.io
@@ -18,30 +19,34 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v3.3.0
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for lab-framework container
-        if: github.ref == 'refs/heads/main'
-        id: meta-lab-framework
-        uses: docker/metadata-action@v5.5.1
+      - name: Extract metadata (tags, labels) for core container
+        id: meta-core
+        uses: docker/metadata-action@v6
         with:
-          images: ${{ env.REGISTRY }}/${{ env.REPO_NAME }}-lab-framework
+          images: ${{ env.REGISTRY }}/${{ env.REPO_NAME }}-core
           tags: |
             type=sha
-            type=raw,value=latest
+            type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push lab-framework image
-        uses: docker/build-push-action@v6.7.0
+      - name: Build and push lab-framework core image
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
-          push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ${{ steps.meta-lab-framework.outputs.tags }}
-          labels: ${{ steps.meta-lab-framework.outputs.labels }}
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta-core.outputs.tags }}
+          labels: ${{ steps.meta-core.outputs.labels }}
+

@@ -1,4 +1,5 @@
 import { APIBase } from "@/lib/api-base"
+import { isTruthyBooleanLike } from "@/lib/utils";
 
 /**
  * APIHeaderCheck component
@@ -34,7 +35,8 @@ export function APIHeaderCheck({
   path = "/", 
   targetStatusCode = 200, 
   url = null, 
-  tlsComponent = false
+  tlsComponent = false,
+  ...restProps
 }: {
   componentName?: string | null;
   headerName?: string | null;
@@ -42,8 +44,11 @@ export function APIHeaderCheck({
   path?: string;
   targetStatusCode?: number;
   url?: string | null;
-  tlsComponent?: boolean;
+  tlsComponent?: boolean | string;
+  [key: string]: unknown;
 }) {
+  const resolvedTlsComponent = isTruthyBooleanLike(tlsComponent);
+
   return (
     <div className="flex flex-col border border-gray-300 p-4 rounded max-w-md">
       <span className="font-bold text-xl">API Header Check</span>
@@ -70,13 +75,14 @@ export function APIHeaderCheck({
       </div>
       <div className="block m-4">
         <APIBase 
+          {...restProps}
           componentName={componentName} 
           headerName={headerName} 
           headerValue={headerValue} 
           path={path} 
           targetStatusCode={targetStatusCode} 
           url={url} 
-          tlsComponent={tlsComponent}
+          tlsComponent={resolvedTlsComponent}
         />
       </div>
     </div>

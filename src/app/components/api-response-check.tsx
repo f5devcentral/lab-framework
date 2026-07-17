@@ -1,4 +1,5 @@
 import { APIBase } from "@/lib/api-base";
+import { isTruthyBooleanLike } from "@/lib/utils";
 
 /**
  * APIResponseCheck component
@@ -33,6 +34,7 @@ export function APIResponseCheck({
   targetStatusCode = 200,
   url = null,
   tlsComponent = false,
+  ...restProps
 }: {
   componentName?: string | null;
   headerName?: string;
@@ -41,8 +43,11 @@ export function APIResponseCheck({
   searchString?: string | null;
   targetStatusCode?: number;
   url?: string | null;
-  tlsComponent?: boolean;
+  tlsComponent?: boolean | string;
+  [key: string]: unknown;
 }) {
+  const resolvedTlsComponent = isTruthyBooleanLike(tlsComponent);
+
   return (
     <div className="flex flex-col border border-gray-300 p-4 rounded max-w-md">
       <span className="font-bold text-xl">API Response Check</span>
@@ -74,12 +79,13 @@ export function APIResponseCheck({
       </div>
       <div className="block m-4">
         <APIBase
+          {...restProps}
           componentName={componentName}
           path={path}
           searchString={searchString}
           targetStatusCode={targetStatusCode}
           url={url}
-          tlsComponent={tlsComponent}
+          tlsComponent={resolvedTlsComponent}
         />
       </div>
     </div>

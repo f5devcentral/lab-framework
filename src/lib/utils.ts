@@ -25,3 +25,19 @@ export function ensureError(value: unknown): Error {
   const error = new Error(`This value was thrown as is, not through an Error: ${stringified}`)
   return error
 }
+
+/**
+ * Returns true when a value represents an enabled boolean-like flag.
+ */
+export function isTruthyBooleanLike(value: unknown): boolean {
+  if (value === true || value === 1) {
+    return true;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    return normalized === "true" || normalized === "{true}" || normalized === "1" || normalized === "";
+  }
+
+  return false;
+}

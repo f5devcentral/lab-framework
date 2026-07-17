@@ -20,7 +20,10 @@
         "settings.json",
         "jsonconfig.json"
     ],
-    "typescript.validate.enable": true,
+    "js/ts.validate.enabled": true,
     "eslint.useFlatConfig": true,
     "jest.runMode": "on-demand",
+    "chat.tools.terminal.autoApprove": {
+        "npx jest": true
+    },
 }

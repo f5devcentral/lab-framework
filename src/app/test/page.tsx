@@ -1,34 +1,25 @@
-import React from "react";
-import { InstancesContextProvider } from "@/app/contexts/instances";
-import { DockerInstance } from "@/app/components/docker";
-import { Card } from "@/app/components/card";
-import { APICheck } from "../components/api-check";
-
 export const dynamic = "force-dynamic";
 
-const RoutePage: React.FC = () => {
+import { getMdxContent } from "@/lib/mdxUtils";
+
+const DOCUMENT_NAME = "author-docs.mdx";
+
+const RoutePage = async () => {
+  const { content, frontmatter } = await getMdxContent(DOCUMENT_NAME);
+
   return (
     <>
-      <InstancesContextProvider>
-        <div>
-          <h1>Welcome to the Test Page</h1>
-        </div>
-        <Card>
-          <DockerInstance
-            name="NGINX Plus R32"
-            description="NGINX Plus R32 with NGINX Agent"
-            image="private-registry.nginx.com/nginx-plus/agent:debian"
-            ports={[{ containerPort: 80, hostPort: 8089 }]}
-          />
-        </Card>
-        <APICheck
-          componentName="NGINX Plus R32"
-          path="/"
-          targetStatusCode={200}
-          url="https://www.f5.com/"
-          tlsComponent={true}
-        />
-      </InstancesContextProvider>
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold" style={{ margin: 0 }}>
+          {frontmatter.title ?? DOCUMENT_NAME}
+        </h1>
+        {frontmatter.description && (
+          <p className="mt-2 text-sm text-gray-400" style={{ marginLeft: 0, marginRight: 0, marginBottom: 0 }}>
+            {frontmatter.description}
+          </p>
+        )}
+      </div>
+      {content}
     </>
   );
 };

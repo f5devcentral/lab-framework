@@ -25,13 +25,13 @@ p {
   @apply text-base m-4 font-sans;
 }
 ul {
-  @apply list-disc list-inside m-4;
+  @apply list-disc list-outside m-4 pl-5;
 }
 li {
   @apply mb-2;
 }
 li p {
-  @apply inline;
+  @apply inline m-0;
 }
 table {
   @apply m-4 table-auto;
@@ -52,7 +52,25 @@ p img {
   @apply scale-75;
 }
 ol {
-  @apply list-decimal list-inside pl-5;
+  @apply m-4 pl-0;
+  counter-reset: ordered-list;
+  list-style: none;
+}
+
+ol > li {
+  counter-increment: ordered-list;
+  position: relative;
+  padding-left: 1.4rem;
+}
+
+ol > li::before {
+  content: counter(ordered-list) ".";
+  position: absolute;
+  left: 0;
+  width: 0.8rem;
+  color: inherit;
+  font-weight: 500;
+  text-align: right;
 }
 .hidden {
   display: none;
@@ -62,6 +80,17 @@ ol {
     display: none;
   }
 }
+
+.toc-container ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc-container li {
+  margin-bottom: 0;
+}
+
 .active {
   font-weight: bold;
   color: blue; /* Adjust styles as needed */

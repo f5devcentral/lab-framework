@@ -1,7 +1,7 @@
 /**
- * Represents a pet name which can be a string or null.
+ * Generic deployment identifier fragment used in generated resource names.
  */
-export type Petname = string | null;
+export type DeploymentIdentifier = string | null;
 
 /**
  * Information about a component.
@@ -51,6 +51,17 @@ export type DocumentData = {
 export type Frontmatter = {
   content: string;
   metadata: Record<string, unknown>;
+}
+
+/**
+ * Typed frontmatter returned from MDX compilation.
+ * Additional keys are allowed, but common display fields are typed.
+ */
+export type MdxFrontmatter = {
+  title?: string;
+  description?: string;
+  order?: number;
+  [key: string]: unknown;
 }
 
 /**
@@ -123,6 +134,7 @@ interface InstanceBase {
   name: string;
   componentId?: string;
   status?: InstanceState;
+  stoppedByUser?: boolean;
 }
 
 /**
@@ -132,11 +144,16 @@ interface InstanceBase {
  * @property {boolean} [isVariable] - Whether it is a variable.
  * @property {boolean} [isSecret] - Whether it is a secret.
  */
-interface InstanceDockerEnv {
+export interface InstanceDockerEnv {
   name: string;
   value?: string;
   isVariable?: boolean;
   isSecret?: boolean;
+}
+
+export interface DockerAttribute {
+  name: string;
+  value: string;
 }
 
 /**
@@ -168,6 +185,7 @@ export interface InstanceDocker extends InstanceBase {
   image: string;
   ports?: DockerPortMapping[];
   env?: InstanceDockerEnv[];
+  attrs?: DockerAttribute[];
 }
 
 /**

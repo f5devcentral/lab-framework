@@ -8,14 +8,176 @@ import { getVariable, getEnvVariable } from "./variables"
 import MDXComponents from "@/lib/mdxComponents"
 import matter from "gray-matter";
 import { delay } from "@/lib/utils"
-import { Document, DocumentData, Frontmatter, GitHubFile } from "./types";
+import { Document, DocumentData, Frontmatter, GitHubFile, MdxFrontmatter } from "./types";
 import { PluggableList } from "unified";
+
+type RemoteDocumentCacheStore = typeof globalThis & {
+  __remoteDocumentCache?: Map<string, string>;
+  __remoteDocumentInflight?: Map<string, Promise<string>>;
+  __remoteDocsIndexCache?: Map<string, Document[]>;
+  __remoteDocsIndexInflight?: Map<string, Promise<Document[]>>;
+};
+
+function getRemoteDocumentCacheStore(): Required<Pick<RemoteDocumentCacheStore, "__remoteDocumentCache" | "__remoteDocumentInflight">> {
+  const store = globalThis as RemoteDocumentCacheStore;
+  store.__remoteDocumentCache ??= new Map<string, string>();
+  store.__remoteDocumentInflight ??= new Map<string, Promise<string>>();
+  return {
+    __remoteDocumentCache: store.__remoteDocumentCache,
+    __remoteDocumentInflight: store.__remoteDocumentInflight,
+  };
+}
+
+function getRemoteDocsIndexCacheStore(): Required<Pick<RemoteDocumentCacheStore, "__remoteDocsIndexCache" | "__remoteDocsIndexInflight">> {
+  const store = globalThis as RemoteDocumentCacheStore;
+  store.__remoteDocsIndexCache ??= new Map<string, Document[]>();
+  store.__remoteDocsIndexInflight ??= new Map<string, Promise<Document[]>>();
+  return {
+    __remoteDocsIndexCache: store.__remoteDocsIndexCache,
+    __remoteDocsIndexInflight: store.__remoteDocsIndexInflight,
+  };
+}
+
+function parseDockerArrayExpression(
+  expression: string,
+  keyParsers: Record<string, RegExp>,
+  booleanKeys: Set<string> = new Set()
+): Array<Record<string, string | boolean>> | null {
+  // Support one level of nested braces for template literal expressions like ${process.env["PETNAME"]}.
+  const objectMatches = expression.match(/\{(?:[^{}]|\{[^{}]*\})*\}/g);
+  if (!objectMatches || objectMatches.length === 0) {
+    return null;
+  }
+
+  const parsed = objectMatches.map((entry) => {
+    const parsedEntry: Record<string, string | boolean> = {};
+
+    for (const [key, matcher] of Object.entries(keyParsers)) {
+      const match = entry.match(matcher);
+      if (!match) {
+        continue;
+      }
+
+      const capturedValue = match.slice(1).find((group) => group !== undefined);
+      if (capturedValue === undefined) {
+        continue;
+      }
+
+      if (
+        booleanKeys.has(key) &&
+        (capturedValue === "true" || capturedValue === "false")
+      ) {
+        parsedEntry[key] = capturedValue === "true";
+      } else {
+        parsedEntry[key] = capturedValue;
+      }
+    }
+
+    if (typeof parsedEntry.name !== "string" || parsedEntry.name.length === 0) {
+      return null;
+    }
+
+    return parsedEntry;
+  });
+
+  if (parsed.some((entry) => entry === null)) {
+    return null;
+  }
+
+  return parsed as Array<Record<string, string | boolean>>;
+}
+
+function parseDockerAttrsArrayExpression(expression: string): Array<Record<string, string>> | null {
+  const attrPattern = /\{\s*name\s*:\s*"([^"]+)"\s*,\s*value\s*:\s*(?:"([^"]*)"|`([^`]*)`)\s*\}/g;
+  const parsed: Array<Record<string, string>> = [];
+  let match: RegExpExecArray | null = null;
+
+  while ((match = attrPattern.exec(expression)) !== null) {
+    const name = match[1];
+    const value = match[2] ?? match[3] ?? "";
+    if (!name) {
+      continue;
+    }
+    parsed.push({ name, value });
+  }
+
+  return parsed.length > 0 ? parsed : null;
+}
+
+function normalizeDockerMdxProps(source: string): string {
+  // Match env/attrs array props only when the closing ]} is followed by another prop or tag close.
+  const dockerArrayPropPattern = (propName: string) => new RegExp(
+    `${propName}=\\{\\[([\\s\\S]*?)\\]\\}(?=\\s+[a-zA-Z_][\\w-]*=|\\s*\\/?>)`,
+    "g"
+  );
+
+  let normalizedSource = source.replace(dockerArrayPropPattern("env"), (fullMatch, envBody: string) => {
+    const parsed = parseDockerArrayExpression(envBody, {
+      name: /name\s*:\s*"([^"]+)"/,
+      value: /value\s*:\s*(?:"([^"]*)"|`([^`]*)`)/,
+      isVariable: /isVariable\s*:\s*(true|false)/,
+      isSecret: /isSecret\s*:\s*(true|false)/,
+    }, new Set(["isVariable", "isSecret"]));
+    if (!parsed) {
+      return fullMatch;
+    }
+
+    const encoded = JSON.stringify(parsed).replace(/"/g, "&quot;");
+    return `env=\"${encoded}\"`;
+  });
+
+  normalizedSource = normalizedSource.replace(dockerArrayPropPattern("attrs"), (fullMatch, attrsBody: string) => {
+    const parsed = parseDockerAttrsArrayExpression(attrsBody);
+    if (!parsed) {
+      return fullMatch;
+    }
+
+    const encoded = JSON.stringify(parsed).replace(/"/g, "&quot;");
+    return `attrs=\"${encoded}\"`;
+  });
+
+  return normalizedSource;
+}
+
+function normalizeApiCheckTlsProps(source: string): string {
+  const apiCheckTagPattern = /<(APICheck|APIHeaderCheck|APIResponseCheck)([\s\S]*?)\/>/g;
+
+  return source.replace(apiCheckTagPattern, (fullMatch, componentName: string, rawProps: string) => {
+    const normalizedProps = rawProps
+      .replace(/\stlsComponent\s*=\s*\{\s*true\s*\}/gi, " tlsComponent=\"true\"")
+      .replace(/\stlsComponent\s*=\s*\"true\"/gi, " tlsComponent=\"true\"");
+
+    return `<${componentName}${normalizedProps}/>`;
+  });
+}
 
 export const LOCAL_DOCS_PATH = path.join(process.cwd(), "src/app/docs");
 
+function normalizeMdxFrontmatter(frontmatter: unknown): MdxFrontmatter {
+  const raw = frontmatter && typeof frontmatter === "object" && !Array.isArray(frontmatter)
+    ? frontmatter as Record<string, unknown>
+    : {};
+
+  return {
+    ...raw,
+    title: typeof raw.title === "string" ? raw.title : undefined,
+    description: typeof raw.description === "string" ? raw.description : undefined,
+    order: typeof raw.order === "number" ? raw.order : undefined,
+  };
+}
+
 /**
  * Returns all document-loading related settings.
- * @returns {Promise<any>} object containing named constants.
+ * @returns {Promise<{
+ *   remoteDocsRepoServer: string | null;
+ *   remoteDocsRepoApiServer: string | null;
+ *   remoteDocsRepoOwner: string | null;
+ *   remoteDocsRepoName: string | null;
+ *   remoteDocsRepoBranch: string | null;
+ *   remoteDocsRepoMediaPath: string;
+ *   remoteDocsRepoPath: string | null;
+ *   remoteDocsRepoCacheSeconds: number;
+ * }>} Object containing named constants.
  */
 async function getDocsSettings() {
   // these values need to be pulled from ENV, to avoid remote code execution
@@ -34,7 +196,7 @@ async function getDocsSettings() {
  * Compiles MD(X) document content.
  * @param {string} documentName - The file name of the document to compile.
  * 
- * @returns {Promise<CompileMDXResult<Record<string, unknown>>>} the compiled MDX.
+ * @returns {Promise<CompileMDXResult<MdxFrontmatter>>} the compiled MDX.
  * @throws {Error} If the the document cannot be compiled.
  */
 export async function getMdxContent(documentName: string) {
@@ -48,10 +210,10 @@ export async function getMdxContent(documentName: string) {
   if (docsSettings.remoteDocsRepoServer) remarkPlugins.push([imgLinks, { absolutePath: `${docsSettings.remoteDocsRepoServer}/${docsSettings.remoteDocsRepoOwner}/${docsSettings.remoteDocsRepoName}/${docsSettings.remoteDocsRepoBranch}/${docsSettings.remoteDocsRepoMediaPath}` }])
 
   const documentUrl = `${docsSettings.remoteDocsRepoServer}/${docsSettings.remoteDocsRepoOwner}/${docsSettings.remoteDocsRepoName}/${docsSettings.remoteDocsRepoBranch}/${docsSettings.remoteDocsRepoPath}/${documentName}`
-  if (docsSettings.remoteDocsRepoServer) console.log(`Fetching remote document: ${documentUrl}, caching for ${docsSettings.remoteDocsRepoCacheSeconds} seconds.`)
   const sourceDocument = docsSettings.remoteDocsRepoServer ? await getRemoteDocument(documentUrl, docsSettings.remoteDocsRepoCacheSeconds) : await getLocalDocument(documentName)
-  return await compileMDX({
-    source: sourceDocument,
+  const normalizedSourceDocument = normalizeApiCheckTlsProps(normalizeDockerMdxProps(sourceDocument))
+  const compiled = await compileMDX<MdxFrontmatter>({
+    source: normalizedSourceDocument,
     components: MDXComponents,
     options: {
       mdxOptions: {
@@ -63,6 +225,11 @@ export async function getMdxContent(documentName: string) {
       },
     },
   })
+
+  return {
+    ...compiled,
+    frontmatter: normalizeMdxFrontmatter(compiled.frontmatter),
+  };
 }
 
 
@@ -87,6 +254,12 @@ async function getLocalDocument(documentName: string) {
  * @throws {Error} If the document cannot be fetched.
  */
 async function getRemoteDocument(url: string, cacheSeconds: number) {
+  const { __remoteDocumentCache: remoteDocumentCache, __remoteDocumentInflight: remoteDocumentInflight } = getRemoteDocumentCacheStore();
+
+  const inflightDocument = remoteDocumentInflight.get(url);
+  if (inflightDocument) {
+    return inflightDocument;
+  }
 
   const options = {
     method: "GET",
@@ -99,19 +272,38 @@ async function getRemoteDocument(url: string, cacheSeconds: number) {
       revalidate: cacheSeconds
     }
   }
-  const res = await fetch(url, options)
+  const remoteDocumentPromise = (async () => {
+    const res = await fetch(url, options)
 
-  if (!res.ok) {
-    // This will activate the closest `error.js` Error Boundary
-    throw new Error("Failed to fetch data")
-  }
-  return res.text()
+    if (!res.ok) {
+      const cachedDocument = remoteDocumentCache.get(url);
+      if (cachedDocument !== undefined) {
+        return cachedDocument;
+      }
+      return `# Remote Document Unavailable\n\nUnable to fetch ${url}.`;
+    }
+
+    const documentText = await res.text()
+    remoteDocumentCache.set(url, documentText);
+    return documentText
+  })().catch((error) => {
+    const cachedDocument = remoteDocumentCache.get(url);
+    if (cachedDocument !== undefined) {
+      return cachedDocument;
+    }
+    return `# Remote Document Unavailable\n\n${error instanceof Error ? error.message : "Unable to fetch remote document."}`;
+  }).finally(() => {
+    remoteDocumentInflight.delete(url);
+  });
+
+  remoteDocumentInflight.set(url, remoteDocumentPromise);
+  return remoteDocumentPromise;
 }
 
 
 /**
  * Gets a list of MD(X) documents from a local or remote source depending on whether a repo is specified in the env vars.
- * @returns {Promise<any>} array of document data sorted by order metadata in frontmatter
+ * @returns {Promise<Document[]>} Array of document data sorted by order metadata in frontmatter.
  */
 export async function getIndexDocs() {
   if (await getEnvVariable("SIMULATE_LOAD_DELAY")) await delay(5000);
@@ -122,9 +314,10 @@ export async function getIndexDocs() {
 /**
  * Gets a list of MD(X) documents from a remote source, GitHub.
  * @param {number} cacheSeconds - The number of seconds to cache the fetched content in nextjs.
- * @returns {Promise<any>} array of document data sorted by order metadata in frontmatter
+ * @returns {Promise<Document[]>} Array of document data sorted by order metadata in frontmatter.
  */
 async function getGitHubDocs(cacheSeconds: number) {
+  const { __remoteDocsIndexCache: remoteDocsIndexCache, __remoteDocsIndexInflight: remoteDocsIndexInflight } = getRemoteDocsIndexCacheStore();
 
   const docsSettings = await getDocsSettings();
 
@@ -141,31 +334,53 @@ async function getGitHubDocs(cacheSeconds: number) {
       revalidate: cacheSeconds
     }
   }
-  console.log(`Fetching remote index: ${url}, caching for ${docsSettings.remoteDocsRepoCacheSeconds} seconds.`)
-  const res = await fetch(url, fetchOptions)
-
-  if (!res.ok) {
-    // This will activate the closest `error.js` Error Boundary
-    throw new Error("Failed to fetch data")
+  const inflightDocs = remoteDocsIndexInflight.get(url);
+  if (inflightDocs) {
+    return inflightDocs;
   }
 
-  const body = await res.json()
+  const remoteDocsPromise = (async () => {
+    const res = await fetch(url, fetchOptions)
 
-  const files: GitHubFile[] = body
-    .filter((file: GitHubFile) => /\.mdx?$/.test(file.name) && file.type === "file")
-    .map((file: GitHubFile) => ({ name: file.name, url: file.url }));
+    if (!res.ok) {
+      const cachedDocs = remoteDocsIndexCache.get(url);
+      if (cachedDocs !== undefined) {
+        return cachedDocs;
+      }
+      return [];
+    }
 
-  const docs = await Promise.all(files.map(async (file: GitHubFile) => ({ name: file.name, location: file.url, documentData: await getGitHubFileContent(file.url, fetchOptions) })
-  )
-  );
-  return sortDocumentsByOrder(docs)
+    const body = await res.json()
+
+    const files: GitHubFile[] = body
+      .filter((file: GitHubFile) => /\.mdx?$/.test(file.name) && file.type === "file")
+      .map((file: GitHubFile) => ({ name: file.name, url: file.url }));
+
+    const docs = await Promise.all(files.map(async (file: GitHubFile) => ({ name: file.name, location: file.url, documentData: await getGitHubFileContent(file.url, fetchOptions) })
+    )
+    );
+    const sortedDocs = sortDocumentsByOrder(docs)
+    remoteDocsIndexCache.set(url, sortedDocs);
+    return sortedDocs
+  })().catch(() => {
+    const cachedDocs = remoteDocsIndexCache.get(url);
+    if (cachedDocs !== undefined) {
+      return cachedDocs;
+    }
+    return [];
+  }).finally(() => {
+    remoteDocsIndexInflight.delete(url);
+  });
+
+  remoteDocsIndexInflight.set(url, remoteDocsPromise);
+  return remoteDocsPromise;
 }
 
 /**
  * Fetches document from GitHub using API to return its frontmatter.
  * @param {string} url to fetch the document from.
  * @param {RequestInit} options to be used by the fetch operation.
- * @returns {Promise<any>} The document content and frontmatter.
+ * @returns {Promise<DocumentData>} The document content and frontmatter.
  */
 async function getGitHubFileContent(url: string, options: RequestInit): Promise<DocumentData> {
   const response = await fetch(url, options)
@@ -177,7 +392,7 @@ async function getGitHubFileContent(url: string, options: RequestInit): Promise<
 /**
  * Gets a list of MD(X) documents from the local file system.
  * @param {string} docsPath the file system path to scan for MD(X) documents.
- * @returns {Promise<any>} array of document data sorted by order metadata in frontmatter
+ * @returns {Promise<Document[]>} Array of document data sorted by order metadata in frontmatter.
  */
 async function getLocalDocs(docsPath: string) {
 

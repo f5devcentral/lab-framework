@@ -14,27 +14,22 @@ describe("Utils Library", () => {
     });
 
     describe("getInstanceDeploymentName", () => {
-        it("should generate a deployment name with default petname", () => {
-            const result = getInstanceDeploymentName({ name: "MyInstance" });
-            expect(result).toBe("testing-myinstance");
-        });
-
-        it("should generate a deployment name with provided petname", () => {
+        it("should generate a deployment name with provided deployment identifier", () => {
             const result = getInstanceDeploymentName({
                 name: "MyInstance",
-                petname: "custom",
+                deploymentIdentifier: "custom",
             });
             expect(result).toBe("custom-myinstance");
         });
 
-        it("should replace non-alphanumeric characters with hyphens", () => {
-            const result = getInstanceDeploymentName({ name: "My@Instance!" });
-            expect(result).toBe("testing-my-instance-");
+        it("should strip non-alphanumeric characters from the name", () => {
+            const result = getInstanceDeploymentName({ name: "My@Instance!", deploymentIdentifier: "custom" });
+            expect(result).toBe("custom-myinstance");
         });
 
         it("should convert the name to lowercase", () => {
-            const result = getInstanceDeploymentName({ name: "MyInstance" });
-            expect(result).toBe("testing-myinstance");
+            const result = getInstanceDeploymentName({ name: "MyInstance", deploymentIdentifier: "custom" });
+            expect(result).toBe("custom-myinstance");
         });
     });
 });

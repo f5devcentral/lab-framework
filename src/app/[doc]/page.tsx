@@ -1,4 +1,4 @@
-// import { getMdxContent } from "@/lib/mdxUtils"
+import { getMdxContent } from "@/lib/mdxUtils"
 import { delay } from "@/lib/utils"
 import { getEnvVariable } from "@/lib/variables"
 
@@ -9,14 +9,18 @@ interface PageParams {
 export default async function Page(props: { params: Promise<PageParams> }) {
   const params = await props.params;
   if (await getEnvVariable("SIMULATE_LOAD_DELAY")) await delay(5000);
-  const { content, frontmatter } = { content: "content", frontmatter: { title: params.doc, description: "description" } }
-  // const { content, frontmatter } = await getMdxContent(params.doc)
+  const { content, frontmatter } = await getMdxContent(params.doc)
+
   return (
     <>
       <div className="mb-10">
-        <h1 className="ml-0 mb-0">{frontmatter?.title}</h1>
-        {frontmatter?.description && (
-          <div className="text-sm text-gray-400">{frontmatter.description}</div>
+        <h1 className="text-3xl font-bold" style={{ margin: 0 }}>
+          {frontmatter.title ?? params.doc}
+        </h1>
+        {frontmatter.description && (
+          <p className="mt-2 text-sm text-gray-400" style={{ marginLeft: 0, marginRight: 0, marginBottom: 0 }}>
+            {frontmatter.description}
+          </p>
         )}
       </div>
       {content}

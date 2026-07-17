@@ -74,7 +74,7 @@ curl --retry 12 --retry-all-errors -X PUT 'http://metadata.udf:80/mockserver/exp
                     {
                         "id": "0cd74e44-90fc-4220-96fe-4c1b1cf1502e",
                         "name": "Runner",
-                        "osName": "Ubuntu 22.04 LTS Server",
+                        "osName": "Ubuntu 24.04 LTS Server",
                         "mgmtIp": "10.1.1.5",
                         "trafficIps": [],
                         "accessMethods": {
@@ -172,7 +172,7 @@ curl -X PUT 'http://metadata.udf:80/mockserver/expectation' \
             {
                 "id": "0cd74e44-90fc-4220-96fe-4c1b1cf1502e",
                 "name": "Runner",
-                "osName": "Ubuntu 22.04 LTS Server",
+                "osName": "Ubuntu 24.04 LTS Server",
                 "mgmtIp": "10.1.1.5",
                 "trafficIps": [],
                 "accessMethods": {

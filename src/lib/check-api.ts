@@ -1,7 +1,52 @@
 "use server"
-import { isInstanceDocker } from "@/app/contexts/instances";
-import { Instance } from "./types";
+import { Instance, InstanceDocker, InstanceType } from "./types";
 import { ensureError } from "./utils";
+
+function isDockerInstance(component: Instance): component is InstanceDocker {
+  return (
+    component.type === InstanceType.Docker ||
+    "image" in component ||
+    "ports" in component
+  );
+}
+
+function hasDockerHostPort(component: Instance): component is InstanceDocker {
+  return (
+    "ports" in component &&
+    Array.isArray(component.ports) &&
+    component.ports.some((port) => port.hostPort !== undefined)
+  );
+}
+
+function getPreferredHostPort(component: InstanceDocker, tls: boolean): number | undefined {
+  const preferredContainerPort = tls ? 443 : 80;
+  const preferredPort = component.ports?.find(
+    (port) => port.containerPort === preferredContainerPort && port.hostPort !== undefined
+  );
+
+  if (preferredPort?.hostPort !== undefined) {
+    return preferredPort.hostPort;
+  }
+
+  if (tls) {
+    return undefined;
+  }
+
+  return component.ports?.find((port) => port.hostPort !== undefined)?.hostPort;
+}
+
+function getPreferredContainerPort(component: InstanceDocker, tls: boolean): number | undefined {
+  const preferredContainerPort = tls ? 443 : 80;
+  const preferredPort = component.ports?.find(
+    (port) => port.containerPort === preferredContainerPort
+  );
+
+  if (preferredPort?.containerPort !== undefined) {
+    return preferredPort.containerPort;
+  }
+
+  return component.ports?.find((port) => port.containerPort !== undefined)?.containerPort;
+}
 
 /**
  * Retrieves the URL for a given component.
@@ -11,15 +56,45 @@ import { ensureError } from "./utils";
  * @param {string} component - The component to check.
  * @param {boolean} tls - A True value will use TLS (https) to connect to the component. A False value is no TLS (http).
  * @returns {Promise<string>} - The full URL of the component.
- * @throws {Error} - Throws an error if petname or component data is missing or invalid.
+ * @throws {Error} - Throws an error if component data is missing or invalid.
  */
 async function getComponentUrl(component: Instance, tls: boolean) {
   const protocol = tls ? "https" : "http";
 
   if (!component) throw new Error("Component data is missing or invalid");
 
-  if (isInstanceDocker(component) && component.ports && component.ports.length > 0) {
-    return `${protocol}://host.docker.internal:${component.ports[0].hostPort}`;
+  if (tls && isDockerInstance(component)) {
+    const tlsHostPort = component.ports?.find(
+      (port) => port.containerPort === 443 && port.hostPort !== undefined
+    )?.hostPort;
+
+    if (tlsHostPort === undefined) {
+      // If 443 is not host-mapped, use container network DNS when a component id exists.
+      if (typeof component.componentId === "string" && component.componentId.length > 0) {
+        return `${protocol}://${component.componentId}:443`;
+      }
+
+      throw new Error("TLS requires container port 443 to be host-mapped or a valid component id for container-network access");
+    }
+
+    return `${protocol}://host.docker.internal:${tlsHostPort}`;
+  }
+
+  if (hasDockerHostPort(component)) {
+    const hostPort = getPreferredHostPort(component, tls);
+    if (hostPort !== undefined) {
+      return `${protocol}://host.docker.internal:${hostPort}`;
+    }
+  }
+
+  if (isDockerInstance(component)) {
+    const hasComponentId = typeof component.componentId === "string" && component.componentId.length > 0;
+    if (hasComponentId) {
+      const containerPort = getPreferredContainerPort(component, tls);
+      if (containerPort !== undefined) {
+        return `${protocol}://${component.componentId}:${containerPort}`;
+      }
+    }
   }
 
   return `${protocol}://${component?.componentId}`;
@@ -82,7 +157,8 @@ export async function checkAPI({
   try {
     console.log(`Calling API Check at: ${url}`)
     // @ts-expect-error TS2769
-    const response = await fetch(url, { mode: "cors", cache: "no-store" }); // url will never be null here. adding a conditional would cause unreachable code here.
+    let response = await fetch(url, { mode: "cors", cache: "no-store" }); // url will never be null here. adding a conditional would cause unreachable code here.
+
     if (response.status != targetStatusCode) {
       throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
     }
@@ -103,6 +179,17 @@ export async function checkAPI({
 
     return true;
   } catch (error) {
+    if (
+      tlsComponent &&
+      component !== null &&
+      isDockerInstance(component) &&
+      component.ports?.some((port) => port.containerPort === 443 && port.hostPort !== undefined) !== true
+    ) {
+      throw new Error(
+        "Failed API request: TLS endpoint is not reachable. Map container port 443 to a host port, or ensure the component id is reachable from the app container network"
+      );
+    }
+
     const err = ensureError(error)
     throw new Error(`Failed API request: ${err.message}`);
   }
