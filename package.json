@@ -48,7 +48,7 @@
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "jest-fetch-mock": "^4.2.0",
-    "postcss": "^8.5.16",
+    "postcss": "^8.5.19",
     "tailwindcss": "^4.3.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
