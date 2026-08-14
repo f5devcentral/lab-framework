@@ -1,10 +1,8 @@
 
-FROM node:24-alpine AS base
+FROM node:24-bookworm-slim AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -35,12 +33,34 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
+FROM --platform=linux/amd64 quay.io/openshift/origin-cli:5.1 AS openshift_cli
+
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
-# Add Docker CLI & cURL (for troubleshooting)
-RUN apk add --no-cache docker-cli curl
+ARG KUBECTL_VERSION=v1.33.3
+ARG HELM_VERSION=v3.18.4
+
+COPY scripts/install-kubernetes-tools.sh /tmp/install-kubernetes-tools.sh
+COPY --from=openshift_cli /usr/bin/oc /usr/local/bin/oc.amd64
+
+# Add Docker CLI, kubectl, and Helm for container and Kubernetes workflows.
+RUN set -eux; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends docker.io curl ca-certificates tar gzip; \
+  chmod +x /usr/local/bin/oc.amd64; \
+  printf '%s\n' '#!/bin/sh' \
+    'if [ "$(uname -m)" = "x86_64" ]; then' \
+    '  exec /usr/local/bin/oc.amd64 "$@"' \
+    'fi' \
+    'echo "OpenShift oc 5.1 is only available for amd64 in this image build." >&2' \
+    'exit 1' > /usr/local/bin/oc; \
+  chmod +x /usr/local/bin/oc; \
+  rm -rf /var/lib/apt/lists/*; \
+  chmod +x /tmp/install-kubernetes-tools.sh; \
+  KUBECTL_VERSION="$KUBECTL_VERSION" HELM_VERSION="$HELM_VERSION" /tmp/install-kubernetes-tools.sh; \
+  rm -f /tmp/install-kubernetes-tools.sh
 
 ENV NODE_ENV=production
 # Uncomment the following line in case you want to disable telemetry during runtime.

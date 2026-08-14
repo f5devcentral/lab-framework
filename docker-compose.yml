@@ -7,14 +7,71 @@ services:
     restart: always
     ports:
       - "3000:3000"
+    depends_on:
+      k3s-single-node:
+        condition: service_healthy
+        required: false
+    environment:
+      KUBECONFIG: ${KUBECONFIG:-/app/.kube/k3s.yaml}
+      KUBERNETES_API_URL: ${KUBERNETES_API_URL:-https://k3s-single-node:6443}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./.env:/app/.env"
+      - "k3s-kubeconfig:/app/.kube:ro"
+      - "./openshift:/app/.kube-openshift:ro"
+
+  k3s-single-node:
+    image: rancher/k3s:v1.33.3-k3s1
+    profiles: ["k3s"]
+    privileged: true
+    restart: always
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        /bin/k3s server \
+          --write-kubeconfig=/kubeconfig/k3s-source.yaml \
+          --write-kubeconfig-mode=644 \
+          --tls-san=k3s-single-node \
+          --tls-san=host.docker.internal \
+          --disable=traefik \
+          --disable=servicelb \
+          --kube-controller-manager-arg=cluster-signing-duration=87600h &
+        k3s_pid=$$!
+
+        until [ -s /kubeconfig/k3s-source.yaml ]; do
+          sleep 1
+        done
+
+        sed 's|https://127.0.0.1:6443|https://k3s-single-node:6443|g' /kubeconfig/k3s-source.yaml > /kubeconfig/k3s.yaml
+        cp /kubeconfig/k3s.yaml /kubeconfig/k3s-host.yaml
+        sed -i 's|https://k3s-single-node:6443|https://host.docker.internal:6443|g' /kubeconfig/k3s-host.yaml
+
+        wait "$$k3s_pid"
+    ports:
+      - "6443:6443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - "k3s-data:/var/lib/rancher/k3s"
+      - "k3s-kubeconfig:/kubeconfig"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD-SHELL", "KUBECONFIG=/kubeconfig/k3s-source.yaml k3s kubectl get --raw=/readyz >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
 volumes:
   cache:
+    driver: local
+  k3s-data:
+    driver: local
+  k3s-kubeconfig:
     driver: local
 
 networks:

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eu
+
 # Get the docker assigned address of the host and insert it into the hosts file for use by UDF API mocks
 printf "\n`getent ahostsv4 host.docker.internal | grep STREAM | awk '{ print $1 ; exit }'` metadata.udf" | sudo tee -a /etc/hosts
 
