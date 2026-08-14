@@ -1,20 +1,32 @@
+name: lab-framework_devcontainer
+
 services:
   # Update this to the name of the service you want to work with in your docker-compose.yml file
   lab-framework-core:
-    image: mcr.microsoft.com/devcontainers/javascript-node:24-bookworm
-    volumes:
-      # Update this to wherever you want VS Code to mount the folder of your project
-      - ..:/workspace:cached
-
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
     # Overrides default command so things don't shut down after the process ends.
     command: /bin/sh -c "while sleep 1000; do :; done"
 
     ports:
       - "3000:3000"
     depends_on:
-      - mock-server
+      mock-server:
+        condition: service_started
+      k3s-single-node:
+        condition: service_healthy
+        required: false
+    environment:
+      KUBECONFIG: ${KUBECONFIG:-/home/node/.kube/k3s.yaml}
+      KUBERNETES_API_URL: ${KUBERNETES_API_URL:-https://k3s-single-node:6443}
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      # Update this to wherever you want VS Code to mount the folder of your project
+      - ..:/workspace:cached
+      - k3s-kubeconfig:/home/node/.kube:ro
+      - ../openshift:/home/node/.kube-openshift:ro
 
   mock-server:
     image: mockserver/mockserver
@@ -22,8 +34,53 @@ services:
       - "80:1080" # for UDF mocks
       - "5123:1080" # for deployment identifier service mocks
 
+  k3s-single-node:
+    image: rancher/k3s:v1.33.3-k3s1
+    profiles: ["k3s"]
+    privileged: true
+    cgroup: host
+    entrypoint:
+      - /bin/sh
+      - -c
+    command:
+      - >-
+        set -eu;
+        /bin/k3s server
+        --write-kubeconfig=/kubeconfig/k3s-source.yaml
+        --write-kubeconfig-mode=644
+        --tls-san=k3s-single-node
+        --tls-san=host.docker.internal
+        --disable=traefik
+        --disable=servicelb
+        --kube-controller-manager-arg=cluster-signing-duration=87600h &
+          k3s_pid=$$!;
+        until [ -s /kubeconfig/k3s-source.yaml ]; do sleep 1; done;
+        sed 's|https://127.0.0.1:6443|https://k3s-single-node:6443|g' /kubeconfig/k3s-source.yaml > /kubeconfig/k3s.yaml;
+        cp /kubeconfig/k3s.yaml /kubeconfig/k3s-host.yaml;
+        sed -i 's|https://k3s-single-node:6443|https://host.docker.internal:6443|g' /kubeconfig/k3s-host.yaml;
+        wait "$$k3s_pid"
+    ports:
+      - "6443:6443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - k3s-data:/var/lib/rancher/k3s
+      - k3s-kubeconfig:/kubeconfig
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD-SHELL", "KUBECONFIG=/kubeconfig/k3s-source.yaml k3s kubectl get --raw=/readyz >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
 volumes:
   cache:
+    driver: local
+  k3s-data:
+    driver: local
+  k3s-kubeconfig:
     driver: local
 
 networks:
