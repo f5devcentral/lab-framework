@@ -43,3 +43,5 @@ report.json
 # Used in lab content
 nginx-api.conf
 ssl
+kubeconfig.yaml
+kubeconfig
