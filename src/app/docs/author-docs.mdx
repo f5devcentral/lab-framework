@@ -299,14 +299,16 @@ The framework uses the **DockerContainer** wrapper component to help correctly d
 
 The **Docker** component is responsible for managing and displaying information about the container.  
 
-| Variable        | Description                                           | Required |
-|-----------------|-------------------------------------------------------|----------|
-| **name**        | A unique name for the Docker container.               | Yes      |
-| **description** | The description of the Docker container.              | No       |
-| **image**       | The image of the Docker container.                    | Yes      |
-| **env**         | The environment variables for the Docker container.   | No       |
-| **port**        | The port mapping for the Docker container.            | No       |
-| **attrs**       | Additional attributes for the Docker container.       | No       |
+| Variable        | Description                                                                 | Required |
+|-----------------|-----------------------------------------------------------------------------|----------|
+| **name**        | A unique name for the Docker container.                                     | Yes      |
+| **description** | The description of the Docker container.                                    | No       |
+| **image**       | The image of the Docker container.                                          | Yes      |
+| **env**         | The environment variables for the Docker container.                         | No       |
+| **port**        | The port mapping for the Docker container.                                  | No       |
+| **attrs**       | Additional attributes for the Docker container.                             | No       |
+
+Each environment entry supports the optional `resolveTemplates` flag. When set to `true`, template placeholders like `${PETNAME}` are resolved before the container is created. This behavior is intentionally opt-in and defaults to off.
 
 ### Examples
 
@@ -340,7 +342,8 @@ The **Docker** component is responsible for managing and displaying information 
     image="private-registry.nginx.com/nginx-plus/agent:debian" 
     env={[
       { name: "NGINX_AGENT_SERVER_HOST", value: "agent.connect.nginx.com" },
-      { name: "NGINX_AGENT_SERVER_TOKEN", isVariable: true, isSecret: true }
+      { name: "NGINX_AGENT_SERVER_TOKEN", isVariable: true, isSecret: true },
+      { name: "NGINX_AGENT_LABELS", value: "config-sync-group=${PETNAME}", resolveTemplates: true }
       ]} 
     port={{host: 55055, container: 80}} 
   />
@@ -349,6 +352,8 @@ The **Docker** component is responsible for managing and displaying information 
     image="private-registry.nginx.com/nginx-plus/agent:debian"
   />
 </DockerContainer>
+
+The `${VAR}` syntax is only expanded when you set `resolveTemplates: true` on the environment entry. For example, `config-sync-group=${PETNAME}` resolves to the current stored value for `PETNAME` before the container is created only when that flag is enabled.
 
 <br />
 ---
