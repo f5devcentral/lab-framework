@@ -240,6 +240,9 @@ export async function getDeploymentIdentifier(): Promise<DeploymentIdentifier> {
  */
 export async function getVariable<T>(name: string): Promise<T | null> {
     const candidateKeys = getCandidateKeys(name);
+    const normalizedName = name.trim().toLowerCase();
+    const isDeploymentAliasLookup =
+        normalizedName === "petname" || normalizedName === "deployment_identifier";
 
     if (isBrowserEnvironment()) {
         const variableMap = getLocalVariablesMap();
@@ -249,13 +252,39 @@ export async function getVariable<T>(name: string): Promise<T | null> {
                 return variableMap[key] as unknown as T;
             }
         }
+
+        if (normalizedName === "deployment_identifier") {
+            const topLevelDeploymentIdentifier = getLocalStorageString(DEPLOYMENT_IDENTIFIER_KEY);
+            if (topLevelDeploymentIdentifier) {
+                return topLevelDeploymentIdentifier as unknown as T;
+            }
+        }
     }
 
     try {
-        return await getVariableServer<T>(name);
+        const directValue = await getVariableServer<T>(name);
+        if (directValue !== null && directValue !== undefined) {
+            return directValue;
+        }
     } catch {
-        return null;
+        // Fall through to the deployment-identifier alias when no direct variable is found.
     }
+
+    if (isBrowserEnvironment() && normalizedName === "petname") {
+        const topLevelDeploymentIdentifier = getLocalStorageString(DEPLOYMENT_IDENTIFIER_KEY);
+        if (topLevelDeploymentIdentifier) {
+            return topLevelDeploymentIdentifier as unknown as T;
+        }
+    }
+
+    if (isDeploymentAliasLookup) {
+        const deploymentIdentifier = await getDeploymentIdentifier();
+        if (deploymentIdentifier) {
+            return deploymentIdentifier as T;
+        }
+    }
+
+    return null;
 }
 
 /**

@@ -32,3 +32,19 @@ Approved examples:
 - Do not introduce duplicate code; extract shared logic into centralized utilities/modules and update call sites instead of copy-pasting implementations.
 - Add JSDoc headers to all exported functions and exported class methods; keep the docblocks concise and accurate.
 - When changing, adding, or removing any MDX component or any behavior behind an MDX component, also update [src/app/docs/author-docs.mdx](src/app/docs/author-docs.mdx) so the documentation and smoke-test usage examples stay in sync.
+
+## Change Validation Rules
+
+- After any code change, run the relevant tests immediately.
+- Do not auto-fix failing tests without user review.
+- If tests fail after a change:
+  1. Stop and present the failure details
+  2. List options for resolution
+  3. Assess whether the change is breaking to existing users/clients
+  4. Wait for explicit user direction before proceeding with fixes
+- Consider a change breaking if:
+  - Existing code/integrations will stop working
+  - Public APIs or interfaces are affected
+  - Client code will need updates to stay compatible
+  - User behavior or expectations will change unexpectedly
+- This prevents silent compatibility issues and ensures informed decisions about changes.
