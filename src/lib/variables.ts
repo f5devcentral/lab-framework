@@ -95,6 +95,13 @@ function setLocalVariablesMap(values: Record<string, string>): void {
     notifyLocalStorageChange(LOCAL_VARIABLES_STORAGE_KEY);
 }
 
+/**
+ * Stores a client-side variable in browser localStorage and notifies subscribers.
+ *
+ * @param {string} key - The variable key to store.
+ * @param {string} value - The value to store for the variable.
+ * @returns {void}
+ */
 export function setClientVariable(key: string, value: string): void {
     if (!isBrowserEnvironment()) {
         return;
@@ -244,13 +251,6 @@ export async function getVariable<T>(name: string): Promise<T | null> {
         }
     }
 
-    if (candidateKeys.includes(DEPLOYMENT_IDENTIFIER_KEY)) {
-        const deploymentIdentifier = await getDeploymentIdentifier();
-        if (deploymentIdentifier) {
-            return deploymentIdentifier as T;
-        }
-    }
-
     try {
         return await getVariableServer<T>(name);
     } catch {
@@ -259,10 +259,36 @@ export async function getVariable<T>(name: string): Promise<T | null> {
 }
 
 /**
- * Sets a variable in browser local storage map (client) and process env (server).
+ * Resolves template placeholders such as ${VAR_NAME} using the current variable store.
  *
- * @param {string} key - The key of the variable to set
- * @param {string} value - The value of the variable to set
+ * @param {string | null | undefined} value - The raw template string to resolve.
+ * @returns {Promise<string | undefined>} The resolved string value, or the original input when no placeholders are present.
+ */
+export async function resolveTemplateStringValue(value?: string | null): Promise<string | undefined> {
+    if (typeof value !== "string" || value.length === 0) {
+        return value ?? undefined;
+    }
+
+    const matches = Array.from(new Set([...value.matchAll(/\$\{([^}]+)\}/g)].map((match) => match[1])));
+    if (matches.length === 0) {
+        return value;
+    }
+
+    let resolvedValue = value;
+    for (const variableName of matches) {
+        const variableValue = await getVariable<string>(variableName);
+        const replacement = variableValue === null || variableValue === undefined ? "" : String(variableValue);
+        resolvedValue = resolvedValue.split(`\${${variableName}}`).join(replacement);
+    }
+
+    return resolvedValue;
+}
+
+/**
+ * Persists a variable value both in local browser state and the server environment.
+ *
+ * @param {string} key - The variable key to persist.
+ * @param {string} value - The value to assign to the variable.
  * @returns {Promise<void>}
  */
 export async function setVariable(key: string, value: string) {

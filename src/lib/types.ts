@@ -143,12 +143,14 @@ interface InstanceBase {
  * @property {string} [value] - The value of the environment variable.
  * @property {boolean} [isVariable] - Whether it is a variable.
  * @property {boolean} [isSecret] - Whether it is a secret.
+ * @property {boolean} [resolveTemplates] - Whether template placeholders like ${PETNAME} should be resolved before the container is created.
  */
 export interface InstanceDockerEnv {
   name: string;
   value?: string;
   isVariable?: boolean;
   isSecret?: boolean;
+  resolveTemplates?: boolean;
 }
 
 export interface DockerAttribute {

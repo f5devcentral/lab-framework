@@ -3,7 +3,7 @@ import { exec as execCallback } from "child_process";
 import Docker from "dockerode";
 import { promisify } from "util";
 import { getInstanceDeploymentName } from "./utils";
-import { getEnvVariable } from "@/lib/variables";
+import { getEnvVariable, resolveTemplateStringValue } from "@/lib/variables";
 import {
   DockerAttribute,
   InstanceDockerEnv,
@@ -198,9 +198,28 @@ async function removeStoppedExistingContainer(
   }
 }
 
+/**
+ * Resolves environment variables with explicit opt-in template expansion.
+ * Template values are only interpolated when the entry sets resolveTemplates.
+ *
+ * @param {InstanceDockerEnv[]} env - The environment entries to resolve.
+ * @returns {Promise<InstanceDockerEnv[]>} The resolved environment entries.
+ */
 async function resolveContainerEnvVars(env: InstanceDockerEnv[]): Promise<InstanceDockerEnv[]> {
   return await Promise.all(
     env.map(async (entry) => {
+      const templateResolvedValue =
+        typeof entry.value === "string" && entry.resolveTemplates
+          ? await resolveTemplateStringValue(entry.value)
+          : entry.value;
+
+      if (typeof templateResolvedValue === "string" && templateResolvedValue !== entry.value) {
+        return {
+          ...entry,
+          value: templateResolvedValue,
+        };
+      }
+
       if (!entry.isVariable) {
         return entry;
       }

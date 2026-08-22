@@ -16,7 +16,13 @@ import {
   InstanceUdf,
   Protocol,
 } from "@/lib/types";
-import { getComponentName, getVariable, setClientVariable, setVariable } from "@/lib/variables";
+import {
+  getComponentName,
+  getVariable,
+  resolveTemplateStringValue,
+  setClientVariable,
+  setVariable,
+} from "@/lib/variables";
 import { useInstances } from "@/lib/client-variables";
 import { syncDockerInstances } from "@/app/lib/docker-instance-sync";
 import type { DockerSyncItem } from "@/app/lib/docker-instance-sync";
@@ -34,6 +40,18 @@ const resolveDockerEnvValues = async (
 ): Promise<InstanceDockerEnv[]> => {
   return await Promise.all(
     env.map(async (entry) => {
+      const templateResolvedValue =
+        typeof entry.value === "string"
+          ? await resolveTemplateStringValue(entry.value)
+          : entry.value;
+
+      if (typeof templateResolvedValue === "string" && templateResolvedValue !== entry.value) {
+        return {
+          ...entry,
+          value: templateResolvedValue,
+        };
+      }
+
       if (!entry.isVariable || (entry.value ?? "") !== "") {
         return entry;
       }

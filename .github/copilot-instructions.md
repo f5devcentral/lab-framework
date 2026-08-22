@@ -30,3 +30,5 @@ Approved examples:
 - Do not implement readability-reducing compatibility alias patterns that accept multiple names for the same input.
 - For any given input/option, accept a single canonical name and update callers/tests/docs to match it instead of adding fallback aliases or normalization logic.
 - Do not introduce duplicate code; extract shared logic into centralized utilities/modules and update call sites instead of copy-pasting implementations.
+- Add JSDoc headers to all exported functions and exported class methods; keep the docblocks concise and accurate.
+- When changing, adding, or removing any MDX component or any behavior behind an MDX component, also update [src/app/docs/author-docs.mdx](src/app/docs/author-docs.mdx) so the documentation and smoke-test usage examples stay in sync.

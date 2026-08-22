@@ -13,9 +13,13 @@ import { DockerPortMapping } from "@/lib/types";
 import { Protocol } from "@/lib/types";
 
 jest.mock("@/app/lib/utils");
-jest.mock("@/lib/variables", () => ({
-  getEnvVariable: jest.fn(),
-}));
+jest.mock("@/lib/variables", () => {
+  const actual = jest.requireActual("@/lib/variables");
+  return {
+    ...actual,
+    getEnvVariable: jest.fn(),
+  };
+});
 
 const mockContainer = {
   inspect: jest.fn().mockResolvedValue({ State: { Status: "running" } }),
@@ -339,6 +343,42 @@ describe("Docker Library", () => {
         })
       );
       expect(mockContainer.start).toHaveBeenCalled();
+    });
+
+    it("should not resolve string templates unless explicitly enabled", async () => {
+      process.env.PETNAME = "demo-123";
+
+      await createContainer({
+        attrs: [],
+        env: [{ name: "NGINX_AGENT_LABELS", value: "config-sync-group=${PETNAME}" }],
+        image: "test-image",
+        name: "test-name",
+        ports: [{ containerPort: 80, hostPort: 8080 }],
+      });
+
+      expect(mockDockerode.createContainer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Env: ["NGINX_AGENT_LABELS=config-sync-group=${PETNAME}"],
+        })
+      );
+    });
+
+    it("should resolve string template env values before creating a container when enabled", async () => {
+      process.env.PETNAME = "demo-123";
+
+      await createContainer({
+        attrs: [],
+        env: [{ name: "NGINX_AGENT_LABELS", value: "config-sync-group=${PETNAME}", resolveTemplates: true }],
+        image: "test-image",
+        name: "test-name",
+        ports: [{ containerPort: 80, hostPort: 8080 }],
+      });
+
+      expect(mockDockerode.createContainer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Env: ["NGINX_AGENT_LABELS=config-sync-group=demo-123"],
+        })
+      );
     });
 
     it("should resolve secret env vars server-side before creating a container", async () => {
