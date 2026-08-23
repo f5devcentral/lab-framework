@@ -1,6 +1,6 @@
 "use server";
 
-import { LABINFO_API_URL, UDF_DEPLOYMENT_API_URL } from "./constants";
+import { getLabInfoApiUrl, getUdfDeploymentApiUrl } from "./constants";
 import { findValueByKey } from "./object-utils";
 
 async function fetchInfo<T = unknown>(url: string, variableName: string): Promise<T | null> {
@@ -18,11 +18,11 @@ async function fetchInfo<T = unknown>(url: string, variableName: string): Promis
 }
 
 export async function fetchLabInfoServer<T = unknown>(variableName: string): Promise<T | null> {
-  return await fetchInfo<T>(LABINFO_API_URL, variableName);
+  return await fetchInfo<T>(getLabInfoApiUrl(), variableName);
 }
 
 export async function fetchUDFInfoServer<T = unknown>(variableName: string): Promise<T | null> {
-  return await fetchInfo<T>(UDF_DEPLOYMENT_API_URL, variableName);
+  return await fetchInfo<T>(getUdfDeploymentApiUrl(), variableName);
 }
 
 export async function fetchUdfComponentWebShellServer(componentName: string | null = null): Promise<string | null> {
@@ -31,7 +31,7 @@ export async function fetchUdfComponentWebShellServer(componentName: string | nu
     return null;
   }
 
-  const response = await fetch(UDF_DEPLOYMENT_API_URL, { mode: "cors" });
+  const response = await fetch(getUdfDeploymentApiUrl(), { mode: "cors" });
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
