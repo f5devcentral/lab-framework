@@ -1,6 +1,6 @@
 "use server";
 
-import { DEPLOYMENT_IDENTIFIER_API_URL } from "./constants";
+import { getDeploymentIdentifierApiUrl } from "./constants";
 import { DeploymentIdentifier } from "./types";
 
 function getDeploymentIdentifierResponseField(): string {
@@ -9,10 +9,11 @@ function getDeploymentIdentifierResponseField(): string {
 
 export async function fetchDeploymentIdentifierServer(): Promise<DeploymentIdentifier> {
   try {
-    const response = await fetch(DEPLOYMENT_IDENTIFIER_API_URL, { cache: "no-store" });
+    const deploymentIdentifierApiUrl = getDeploymentIdentifierApiUrl();
+    const response = await fetch(deploymentIdentifierApiUrl, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(
-        `Failed to retrieve deployment identifier from ${DEPLOYMENT_IDENTIFIER_API_URL}`
+        `Failed to retrieve deployment identifier from ${getDeploymentIdentifierApiUrl()}`
       );
     }
 
