@@ -55,7 +55,8 @@
 				"eamodio.gitlens",
 				"lllllllqw.jsdoc",
 				"Orta.vscode-jest",
-				"github.vscode-github-actions"
+				"github.vscode-github-actions",
+				"GitHub.vscode-pull-request-github"
 			]
 		}
 	},
