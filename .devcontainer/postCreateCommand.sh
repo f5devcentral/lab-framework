@@ -11,30 +11,14 @@ curl --retry 12 --retry-all-errors -X PUT 'http://host.docker.internal:5123/mock
 {
     "httpRequest": {
         "method": "GET",
-        "path": "/labinfo"
+        "path": "/metadata"
     },
     "httpResponse": {
         "body": {
-            "LabID": "87sdf8HDJSDH66asdg",
-            "dataPlaneKey": "YXJlYWxseWxvbmd2YWx1ZWhlcmU=",
-            "description": "NGINX One Lab",
-            "ns": false,
-            "nsRoles": {
-                "group_names": null,
-                "namespace_roles": [
-                    {
-                        "namespace": "default",
-                        "role": "arolenamehere"
-                    }
-                ]
-            },
-            "site": true,
-            "siteStatic": null,
-            "sqsQueue": "reallylongstringhere",
-            "sqsURL": "https://reallylongurlhere.io",
-            "tenant": "tenantnamehere",
-            "tenantURL": "https://tenanturlhere.io",
-            "token": null
+            "dep_id": "abc12345-5927-4afc-91e4-039412adc319",
+            "email": "name@example.com",
+            "lab_id": "abc12345",
+            "petname": "happy-sloth"
         }
     }
 }

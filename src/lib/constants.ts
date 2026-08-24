@@ -16,5 +16,5 @@ export function getDeploymentIdentifierApiUrl(): string {
  * Returns the LabInfo API URL from environment or default.
  */
 export function getLabInfoApiUrl(): string {
-  return process.env.LABINFO_API_URL || "http://host.docker.internal:5123/labinfo";
+  return process.env.LABINFO_API_URL || "http://host.docker.internal:5123/metadata";
 }
