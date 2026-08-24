@@ -6,7 +6,6 @@ const nextConfig = {
   allowedDevOrigins: ["[::1]", "localhost", "127.0.0.1"],
   serverExternalPackages: ["dockerode"],
   images: {
-    domains: ["raw.githubusercontent.com"],
     remotePatterns: [
       {
         protocol: "https",
