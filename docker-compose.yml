@@ -13,7 +13,6 @@ services:
         required: false
     environment:
       KUBECONFIG: ${KUBECONFIG:-/app/.kube/k3s.yaml}
-      KUBERNETES_API_URL: ${KUBERNETES_API_URL:-https://k3s-single-node:6443}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

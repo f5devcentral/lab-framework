@@ -146,19 +146,6 @@ function isContainerNameConflictError(error: unknown): boolean {
   return /already in use|conflict/i.test(error.message);
 }
 
-async function ensureExistingContainerRunning(
-  docker: Docker,
-  name: string,
-  deploymentIdentifier?: string | null
-): Promise<void> {
-  const deploymentName = await resolveDeploymentName(name, deploymentIdentifier);
-  const container = docker.getContainer(deploymentName);
-  const data = await container.inspect();
-  if (data.State?.Status !== InstanceState.Running) {
-    await container.start();
-  }
-}
-
 async function removeExistingContainer(
   docker: Docker,
   name: string,

@@ -8,6 +8,7 @@ import { DockerContainer } from "@/app/components/docker-container";
 import { GetVariable } from "@/app/components/get-variable";
 import ImageModalClient from "@/app/components/image-modal-client";
 import { InputVariable } from "@/app/components/input-var";
+import { KubernetesShell } from "@/app/components/kubernetes-shell";
 import { SetVariable } from "@/app/components/set-variable";
 import { CreateCertificate } from "@/app/components/create-certificate";
 import UDFComponent from "@/app/components/udf-component";
@@ -35,6 +36,7 @@ const MDXComponents = {
   DockerContainer,
   GetVariable,
   InputVariable,
+  KubernetesShell,
   SetVariable,
   UDFComponent,
   UdfDeploymentMetadata,

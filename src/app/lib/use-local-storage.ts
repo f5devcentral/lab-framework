@@ -33,7 +33,7 @@ function persistStoredValue<T>(key: string, value: T): void {
  */
 const useLocalStorage = <T>(key: string, defaultValue: T): [T, (valueOrFn: T | ((val: T) => T)) => void] => {
     const defaultValueRef = useRef(defaultValue);
-    const [localStorageValue, setLocalStorageValue] = useState<T>(defaultValueRef.current)
+    const [localStorageValue, setLocalStorageValue] = useState<T>(defaultValue)
 
     useEffect(() => {
         if (typeof window === "undefined") {
