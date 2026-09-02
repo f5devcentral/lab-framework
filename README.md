@@ -43,22 +43,34 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the lab markdown page by modifying `app/docs/nginx-one.mdx`. The page auto-updates as you edit the file.
+You can start editing the lab markdown page by modifying the MD(X) files in `src/app/docs`. The page auto-updates as you edit the file. See [Document Source](#document-source) for how to switch between local and remote documents.
 
-An optional Kubernetes peer cluster profile is available in the devcontainer Compose stack:
+An optional Kubernetes peer cluster is available in the devcontainer Compose stack, gated behind the `k3s` Compose profile. It does not start by default, and Kubernetes commands report that the cluster is unavailable until it is enabled.
+
+To enable it for every rebuild, create a `.devcontainer/.env` file containing:
 
 ```shell
-# Rebuild devcontainer with default services (no optional k3s profile)
-Dev Containers: Rebuild Container
+COMPOSE_PROFILES=k3s
+```
 
-# Rebuild devcontainer with optional k3s peer cluster
-COMPOSE_PROFILES=k3s Dev Containers: Rebuild Container
+Then run `Dev Containers: Rebuild Container` from the command palette. Compose reads that file from the devcontainer project directory, so the profile is applied however VS Code is launched. The file is ignored by git, so it stays a per-developer setting.
+
+As an alternative, export the variable in the shell you launch VS Code from:
+
+```shell
+export COMPOSE_PROFILES=k3s
+code .
+```
+
+To start the cluster immediately without rebuilding the devcontainer:
+
+```shell
+docker compose -f .devcontainer/docker-compose.yml --profile k3s up -d k3s-single-node
 ```
 
 For OpenShift access in devcontainer mode, provide `./openshift/kubeconfig.yaml` in the repository workspace and set:
 
 1. `KUBECONFIG=/home/node/.kube-openshift/kubeconfig.yaml`
-1. `KUBERNETES_API_URL=https://api.your-openshift.example:6443`
 
 ## "Production" Docker Deployment
 
@@ -130,9 +142,8 @@ OpenShift access is also available for connecting the framework to an external O
 # Prepare an OpenShift kubeconfig at this path:
 # ./openshift/kubeconfig.yaml
 
-# Point the app at the OpenShift kubeconfig and API endpoint
+# Point the app at the OpenShift kubeconfig
 export KUBECONFIG=/app/.kube-openshift/kubeconfig.yaml
-export KUBERNETES_API_URL=https://api.your-openshift.example:6443
 
 # Start the framework stack
 docker compose up -d
@@ -162,13 +173,52 @@ The framework and the K3s container should share a kubeconfig or equivalent acce
 
 ### OpenShift Option
 
-The framework image includes the OpenShift `oc` client pinned to v5.1. Compose mounts `./openshift` into the framework container at `/app/.kube-openshift` (and `/home/node/.kube-openshift` in devcontainer mode), so OpenShift access uses your provided kubeconfig directly.
+The framework image includes the OpenShift `oc` client pinned to v4.22.11, built natively for both `amd64` and `arm64`. Compose mounts `./openshift` into the framework container at `/app/.kube-openshift` (and `/home/node/.kube-openshift` in devcontainer mode), so OpenShift access uses your provided kubeconfig directly.
 
-Use the following environment variables to point the framework at OpenShift:
+Use the following environment variable to point the framework at OpenShift:
 
 1. `KUBECONFIG=/app/.kube-openshift/kubeconfig.yaml`
-1. `KUBERNETES_API_URL=https://api.your-openshift.example:6443`
 
 ### Environment
 
 You will need to create your own `/.env` file to use remote MDX documents. Use the `/.env.example` as a template.
+
+### Document Source
+
+The framework loads lab documents from either the local file system or a remote GitHub repository. A single environment variable, `REMOTE_DOCS_REPO_SERVER`, controls which source is used.
+
+| `REMOTE_DOCS_REPO_SERVER` | Document source                                       |
+|---------------------------|-------------------------------------------------------|
+| Set                       | Remote repository defined by the other `REMOTE_DOCS_*` values |
+| Unset or commented out    | Local `src/app/docs` folder                           |
+
+#### Local documents
+
+Comment out `REMOTE_DOCS_REPO_SERVER` in your `.env` file:
+
+```shell
+# REMOTE_DOCS_REPO_SERVER="https://raw.githubusercontent.com"
+```
+
+Then place your `.md` or `.mdx` files in `src/app/docs`. The remaining `REMOTE_DOCS_*` values are ignored in this mode, so they can be left in place.
+
+Each document needs frontmatter, because the document index is sorted by `order`:
+
+```mdx
+---
+title: My Lab
+description: What this page covers
+order: 1
+---
+```
+
+Notes for local mode:
+
+1. Local files are read per request, so edits appear on refresh and `REMOTE_DOCS_REPO_CACHE_SECONDS` does not apply.
+1. Relative image rewriting is only applied to remote documents. Reference images from the `public` folder instead, for example `/media/diagram.png`.
+
+#### Remote documents
+
+Set `REMOTE_DOCS_REPO_SERVER` along with the other `REMOTE_DOCS_*` values to fetch documents from a GitHub repository. Responses are cached for `REMOTE_DOCS_REPO_CACHE_SECONDS`, and `REMOTE_DOCS_REPO_MEDIA_PATH` is used to resolve relative image paths in the remote content.
+
+Environment variables are read when the server starts, so restart the application after changing the document source.

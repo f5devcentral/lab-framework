@@ -157,7 +157,7 @@ export async function checkAPI({
   try {
     console.log(`Calling API Check at: ${url}`)
     // @ts-expect-error TS2769
-    let response = await fetch(url, { mode: "cors", cache: "no-store" }); // url will never be null here. adding a conditional would cause unreachable code here.
+    const response = await fetch(url, { mode: "cors", cache: "no-store" }); // url will never be null here. adding a conditional would cause unreachable code here.
 
     if (response.status != targetStatusCode) {
       throw new Error(`HTTP error ${response.status}: ${response.statusText}`);

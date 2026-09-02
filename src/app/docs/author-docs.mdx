@@ -466,3 +466,61 @@ The **CreateCertificate** provides a tile with a button that will create PEM-for
 <CreateCertificate
   commonName="mywebsite.f5demos.com"
 />
+
+<br />
+---
+
+## KubernetesShell
+
+The **KubernetesShell** provides a restricted command line for the lab user and displays the output of each command.
+
+Only the `oc` and `kubectl` CLIs can be run. Commands are executed on the server without a shell, so shell operators such as `;`, `|`, `&&`, backticks, and redirection are rejected. Quoted arguments are supported.
+
+The shell retains commands after they are run. Press the Up and Down arrow keys in the command input to navigate the history; Down restores any unfinished command after the newest history entry. Its initial prompt disappears when the first command is submitted.
+
+| Variable        | Description                                                        | Required |
+|-----------------|--------------------------------------------------------------------|----------|
+| **title**       | The heading shown above the shell. Defaults to `Kubernetes Shell`. | No       |
+| **placeholder** | The input placeholder text. Defaults to `kubectl get pods`.        | No       |
+| **context**     | Pins commands to a kubeconfig context via `--context`.             | No       |
+| **namespace**   | Pins commands to a namespace via `--namespace`.                    | No       |
+
+Without **context** or **namespace**, commands use the active context of the kubeconfig the server was started with. When set, the flags are inserted directly after the CLI name, so a `--` passthrough such as `kubectl exec pod -- ls` still works.
+
+If the kubeconfig is missing or the cluster cannot be reached, the shell reports that the cluster is unavailable along with the underlying CLI error, instead of only showing a raw connection failure.
+
+### Example
+
+```jsx
+<KubernetesShell />
+```
+
+<KubernetesShell />
+
+With a custom title and placeholder:
+
+```jsx
+<KubernetesShell
+  title="OpenShift Console"
+  placeholder="oc get projects"
+/>
+```
+
+<KubernetesShell
+  title="OpenShift Console"
+  placeholder="oc get projects"
+/>
+
+Pinned to a context and namespace:
+
+```jsx
+<KubernetesShell
+  namespace="default"
+  placeholder="kubectl get pods"
+/>
+```
+
+<KubernetesShell
+  namespace="default"
+  placeholder="kubectl get pods"
+/>

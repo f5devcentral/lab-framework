@@ -66,6 +66,8 @@ export function ToC() {
     const headingElements = document.querySelectorAll("h1, h2, h3, h4");
     const nextHeadings = collectHeadings(headingElements);
 
+    // Headings are rendered by sibling MDX content, so they can only be read after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHeadings(nextHeadings);
 
     const observer = new IntersectionObserver(

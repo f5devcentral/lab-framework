@@ -2,7 +2,6 @@ import { render, fireEvent, screen, act, waitFor } from "@testing-library/react"
 import { InstancesContextType } from "../contexts/instances";
 
 import { getContainerLogs } from "@/app/lib/docker-lib";
-import { getContainerPorts } from "@/app/lib/docker-lib";
 import { syncDockerInstances } from "@/app/lib/docker-instance-sync";
 import { checkAPI } from "@/lib/check-api";
 import { getComponentName } from "@/lib/variables";
