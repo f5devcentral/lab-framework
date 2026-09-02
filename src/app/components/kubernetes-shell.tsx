@@ -151,7 +151,7 @@ export function KubernetesShell({
             setHistoryIndex(null);
           }}
           onKeyDown={handleCommandKeyDown}
-          placeholder={placeholder}
+          placeholder={hasExecutedCommand ? "" : placeholder}
           type="text"
           value={command}
         />

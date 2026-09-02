@@ -48,7 +48,12 @@ COPY scripts/install-kubernetes-tools.sh /tmp/install-kubernetes-tools.sh
 RUN set -eux; \
   apt-get update; \
   apt-get install -y --no-install-recommends docker.io curl ca-certificates tar gzip; \
-  curl -fsSL -o /tmp/openshift-client.tar.gz "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OC_VERSION}/openshift-client-linux-${TARGETARCH}-${OC_VERSION}.tar.gz"; \
+  case "$TARGETARCH" in \
+    amd64) oc_archive="openshift-client-linux-${OC_VERSION}.tar.gz" ;; \
+    arm64) oc_archive="openshift-client-linux-arm64-${OC_VERSION}.tar.gz" ;; \
+    *) echo "Unsupported OpenShift CLI architecture: $TARGETARCH" >&2; exit 1 ;; \
+  esac; \
+  curl -fsSL -o /tmp/openshift-client.tar.gz "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OC_VERSION}/${oc_archive}"; \
   tar -xzf /tmp/openshift-client.tar.gz -C /usr/local/bin oc; \
   chmod +x /usr/local/bin/oc; \
   rm -f /tmp/openshift-client.tar.gz; \

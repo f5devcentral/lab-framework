@@ -33,6 +33,23 @@ describe("KubernetesShell component", () => {
     expect(screen.getByText("Cluster Console")).toBeInTheDocument();
   });
 
+  it("clears the input placeholder after a command has been executed", async () => {
+    (runKubernetesCliCommand as jest.Mock).mockResolvedValue({
+      command: "kubectl get pods",
+      output: "pod/nginx Running",
+      exitCode: 0,
+      isError: false,
+    });
+
+    render(<KubernetesShell placeholder="kubectl get pods" />);
+    const input = screen.getByLabelText("Kubernetes shell command") as HTMLInputElement;
+
+    expect(input.placeholder).toBe("kubectl get pods");
+
+    runCommand("kubectl get pods");
+    await waitFor(() => expect(input.placeholder).toBe(""));
+  });
+
   it("shows command output on success", async () => {
     (runKubernetesCliCommand as jest.Mock).mockResolvedValue({
       command: "kubectl get pods",
